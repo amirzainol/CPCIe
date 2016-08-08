@@ -6,7 +6,7 @@ CPCIe is a hardware compressor/decompressor implemented on FPGA, to compress/dec
 
 - [Files in the Repository](#files-in-the-repository)
 
-Files in this Repository
+Files in the Repository
 ------------------------
 
 #### README.md
