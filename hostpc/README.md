@@ -11,3 +11,7 @@ xr.c is a program to read from buffer in FPGA (located in CPCIe Custom Interface
 ###xw.c
 
 xw.c is a program to write a file from Host PC to the buffer in FPGA.
+
+##Makefile
+
+The command <code>nmake</code> is used to compile the makefile.
