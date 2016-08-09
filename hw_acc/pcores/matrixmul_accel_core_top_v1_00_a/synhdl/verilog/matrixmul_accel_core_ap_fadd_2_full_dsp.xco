@@ -1,0 +1,59 @@
+# BEGIN Project Options
+SET addpads = false
+SET asysymbol = true
+SET busformat = BusFormatAngleBracketNotRipped
+SET createndf = false
+SET designentry = Verilog
+SET device = xc7vx485t
+SET devicefamily = virtex7
+SET flowvendor = Other
+SET formalverification = false
+SET foundationsym = false
+SET implementationfiletype = Ngc
+SET package = ffg1761
+SET removerpms = false
+SET simulationfiles = Behavioral
+SET speedgrade = -2
+SET verilogsim = true
+SET vhdlsim = true
+# END Project Options
+# BEGIN Select
+SELECT Floating-point xilinx.com:ip:floating_point:6.1
+# END Select
+# BEGIN Parameters
+CSET a_precision_type=Single
+CSET a_tuser_width=1
+CSET add_sub_value=Add
+CSET axi_optimize_goal=Resources
+CSET b_tuser_width=1
+CSET c_a_exponent_width=8
+CSET c_a_fraction_width=24
+CSET c_compare_operation=Programmable
+CSET c_has_divide_by_zero=false
+CSET c_has_invalid_op=false
+CSET c_has_overflow=false
+CSET c_has_underflow=false
+CSET c_latency=2
+CSET c_mult_usage=Full_Usage
+CSET c_optimization=Speed_Optimized
+CSET c_rate=1
+CSET c_result_exponent_width=8
+CSET c_result_fraction_width=24
+CSET component_name=matrixmul_accel_core_ap_fadd_2_full_dsp
+CSET flow_control=NonBlocking
+CSET has_a_tlast=false
+CSET has_a_tuser=false
+CSET has_aclken=true
+CSET has_aresetn=false
+CSET has_b_tlast=false
+CSET has_b_tuser=false
+CSET has_operation_tlast=false
+CSET has_operation_tuser=false
+CSET has_result_tready=false
+CSET maximum_latency=false
+CSET operation_tuser_width=1
+CSET operation_type=Add_Subtract
+CSET result_precision_type=Single
+CSET result_tlast_behv=Null
+# END Parameters
+GENERATE
