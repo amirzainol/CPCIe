@@ -1,0 +1,14 @@
+#
+# pin constraints
+#
+NET CLK_N LOC = "E18"  |  IOSTANDARD = "LVDS";
+NET CLK_P LOC = "E19"  |  IOSTANDARD = "LVDS";
+NET RESET LOC = "AV40"  |  IOSTANDARD = "LVCMOS18";
+
+#
+# additional constraints
+#
+
+NET "CLK" TNM_NET = sys_clk_pin;
+TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 200000 kHz;
+
