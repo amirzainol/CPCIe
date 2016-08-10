@@ -6,22 +6,38 @@ CPCIe is a hardware compressor/decompressor implemented on FPGA, to compress/dec
 
 - [Files in the Repository](#files-in-the-repository)
 
-Files in the Repository
-------------------------
+Files and Folders in the Repository
+-----------------------------------
 
 #### README.md
 
 This file.
 
+#### EDK/
+
+This is the Xilinx EDK (Embedded Development Kit) using Xilinx XPS (Xilinx Platform Studio). The version used is EDK 14.7.
+
 #### MyRepository/
 
 All the developed IP cores in `MyRepository/` are in the public domain. 
+
+#### SDK/
+
+This is the Xilinx SDK (Software Development Kit).
 
 #### datasets/
 
 Datasets used for testing purposes.
 
+#### hostpc/
+
+The communication on Host PC's side is located in this folder. We use Xillybus for PCIe communication and developed our own software to communicate/control the FPGA.
+
+#### hw_acc/
+
+This folder is the collection of Hardware Accelerator used in our test platform.
+
 #### pcie_xillybus/
 
-The hardware used by Xillybus.
+The hardware, implemented on Xilinx FPGA, used by Xillybus.
 
