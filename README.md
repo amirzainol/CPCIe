@@ -4,7 +4,8 @@ CPCIe is a hardware compressor/decompressor implemented on FPGA, to compress/dec
 
 #### Table of Contents
 
-- [Files in the Repository](#files-in-the-repository)
+- [Files in the Repository](#files-and-folders-in-the-repository)
+- [Resource Utilization](#resource-utilization)
 
 Files and Folders in the Repository
 -----------------------------------
@@ -41,3 +42,16 @@ This folder is the collection of Hardware Accelerator used in our test platform.
 
 The hardware, implemented on Xilinx FPGA, used by Xillybus.
 
+Resource Utilization
+-----------------------------------
+
+Table below shows the utilization of each component used in CPCIe, synthesized using Xilinx XST version 14.7. Most of them are located in the [/MyRepository/pcores/](/MyRepository/pcores/) folder.
+
+| Component               | LUTs       | Registers      | BRAMs           |
+|:------------------------| ----------:| --------------:| ---------------:|
+| Xillybus                |       4418 |             5515 |             9 |
+| CPCIe Custom Interface  |        228 |             315  |             3 |
+| AXI-4 Stream Switch     |        720 |             81   |             0 |
+| X-MatchPRO Engine       |       8013 |             3187 |            14 |
+| MicroBlaze Processor    |        657 |             1002 |             2 |
+| AXI4-Lite Interface     |        364 |             154  |             0 |
