@@ -157,7 +157,7 @@ END COMPONENT;
    constant HOST_CLK_period 		: time := 4 ns; -- 250 MHz of PCIe
 
 	-- Configuration
-	signal codec_selector 			: std_logic_vector(3 downto 0) := x"C"; -- Choose C for Compression, choose D for Decompression
+	signal codec_selector 			: std_logic_vector(3 downto 0) := x"D"; -- Choose C for Compression, choose D for Decompression
 
   BEGIN
 
@@ -323,8 +323,8 @@ END COMPONENT;
 	--~~~~~~~~~~~   WRITING FROM FILE TO FIFO   ~~~~~~~~~~~~~~~--
 	--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~--
 	WRITE_C: process
-		file U_INPUT_FILE_txt : TEXT open read_mode is "test_file/" & "alice_4096_U_isim" & ".txt"; -- Uncompressed file
-		file C_INPUT_FILE_txt : TEXT open read_mode is "test_file/" & "alice_4096_C_isim_OK_ram_header" & ".txt"; -- Compressed file
+		file U_INPUT_FILE_txt : TEXT open read_mode is "test_file/" & "alice_4096_U_bin" & ".txt"; -- Uncompressed file
+		file C_INPUT_FILE_txt : TEXT open read_mode is "test_file/" & "alice_4096_C_1024_bin_sim" & ".txt"; -- Compressed file
 		variable LIN : line;
 		variable SPACE : character;
 		variable tdata_file : std_logic_vector(31 downto 0);
@@ -385,7 +385,7 @@ END COMPONENT;
 	--~~~~~~~~~~~   READING FROM FIFO TO FILE   ~~~~~~~~~~~~~~~--
 	--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~--
 	READ_C: process
-		file C_OUTPUT_FILE_txt : TEXT open write_mode is "test_file/" & "Csim" & ".txt"; -- output of Compressed
+		file C_OUTPUT_FILE_txt : TEXT open write_mode is "test_file/" & "output_C_sim" & ".txt"; -- output of Compressed
 		variable  outline  : line;
 		variable    linenumber : integer:=1;
 		variable DATAOUT_std_temp : std_logic_vector(31 downto 0) := x"FFFFFFFF";
@@ -438,7 +438,7 @@ END COMPONENT;
 	end process;
 
 	READ_D: process
-		file D_OUTPUT_FILE_txt : TEXT open write_mode is "test_file/" & "Dsim" & ".txt"; -- output of Decompressed
+		file D_OUTPUT_FILE_txt : TEXT open write_mode is "test_file/" & "output_D_sim" & ".txt"; -- output of Decompressed
 		variable  outline  : line;
 		variable    linenumber : integer:=1;
 		variable DATAOUT_std_temp : std_logic_vector(31 downto 0) := x"FFFFFFFF";
