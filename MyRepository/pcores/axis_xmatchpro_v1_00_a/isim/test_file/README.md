@@ -19,3 +19,9 @@ process: from either two different process; sim (simulation) or imp (implementat
 ####Example
 
 `alice_4096_C_1024_bin_sim`
+
+####Notes
+
+However, for Uncompressed file use this convention:
+
+`<filename>_<filesize>_<mode>_<filetype>`
