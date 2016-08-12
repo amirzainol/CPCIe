@@ -18,7 +18,7 @@
 // Author: 			Mohd Amiruddin Zainol (mohd.a.zainol@gmail.com)
 // Entity: 			test_00_pilot.c
 // Version:			1.0
-// Description: 	This file is the first test to exercise some basic 
+// Description: 	This file is the first test to exercise some basic
 //					compression/decompression using X-MatchPRO
 //
 // Additional Comments:
@@ -59,7 +59,8 @@ char *binbin(int n);
 void init_dataset_FF_1024();
 void init_dataset_alice_1024(int offset, int bytelength);
 
-void print_addr(unsigned int addr, int bytelength);
+void print_addr(unsigned int addr, int bytelength, int bin_or_hex);
+void init_addr(unsigned int addr, int bytelength, unsigned int data);
 
 int total_compressed_filesize;
 
@@ -85,69 +86,57 @@ int main()
 
     init_platform();
 
-    //xil_printf("\r\nStart");
-
     init_dataset_alice_1024(offset, blocksize);
 
-    //print_addr(UXU_BUFFER_BASE, 1024);
+    // clear everything in compressed memory
+    init_addr(UXC_BUFFER_BASE+offset, blocksize, 0x00000000);
+
+    //print_addr(UXU_BUFFER_BASE+offset, blocksize, 0);
 
     xmatchpro_c(filesize, blocksize, offset);
 
-    print_addr(UXC_BUFFER_BASE, 4096);
+    //print_addr(UXC_BUFFER_BASE+offset, blocksize, 0);
 
-    //xil_printf("\r\nDone");
+    xmatchpro_d(filesize, blocksize, offset);
 
-    //xmatchpro_d(filesize, blocksize, offset);
-
-    //print_addr(UXD_BUFFER_BASE+offset, blocksize);
+    //print_addr(UXD_BUFFER_BASE+offset, blocksize, 0);
 
     cleanup_platform();
-
-    /*
-	for (k = offset/4; k < ((offset/4)+256); k++) {
-		if (UXUBufferPtr[k] = UXDBufferPtr[k])
-		{
-			xil_printf("\r\n%d: OK %08X", k, UXUBufferPtr[k]);
-		}
-		else
-		{
-			xil_printf("\r\n%d: FAIL", k);
-		}
-	}
-	*/
-
 
     return 0;
 }
 
-void print_addr(unsigned int addr, int bytelength)
+void print_addr(unsigned int addr, int bytelength, int bin_or_hex)
 {
-	int k;
-	char buffer [33];
-
+	int i, k;
 	u32 *addrPtr;
 	addrPtr = (u32 *)addr;
 	Xil_DCacheInvalidateRange(addrPtr, bytelength);
 
-	xil_printf("PRINT:\r\n");
-
 	for (k = 0; k < (bytelength/4); k++) {
-		//xil_printf("\r\n%d:\t%08X", k, addrPtr[k]);
-		while (addrPtr[k]) {
-		    if (addrPtr[k] & 1)
-		        printf("1");
-		    else
-		        printf("0");
-
-		    addrPtr[k] >>= 1;
-		}
-		printf("\n");
+		if (bin_or_hex)
+			xil_printf("%08X", addrPtr[k]);
+		else
+			for (i=0; i<32; i++) {
+				if (addrPtr[k] & 0x80000000)
+					xil_printf("1");
+				else
+					xil_printf("0");
+				addrPtr[k] <<= 1;
+			}
+		xil_printf("\r\n");
 	}
-
-
 }
 
-
+void init_addr(unsigned int addr, int bytelength, unsigned int data)
+{
+	int i;
+	u32 *addrPtr;
+	addrPtr = (u32 *)addr;
+	for (i = 0; i < (bytelength/4); i++) {
+		addrPtr[i] = data;
+	}
+}
 
 void init_dataset_FF_1024()
 {
@@ -264,11 +253,6 @@ int xmatchpro_c(int file_size, int block_size, int offset)
 	chunk_size = file_size / block_size;
 
 	total_chunks = chunk_size;
-
-	// there is a problem in HW at WAIT_CC_PROCESS,
-	// that is when FIFO_OUTPUT_full is '0', WAIT_CC must be 0
-	// but since WAIT_CC is 1, this will affect the whole value of total_compressed (XMATCH_C_SIZE register in HW)
-	//total_compressed = (Xil_In32((XPAR_AXIS_XMATCHPRO_0_BASEADDR)+(112)));
 
 	total_compressed = ((Xil_In32((XPAR_AXIS_XMATCHPRO_0_BASEADDR)+(112)))) & 0x0FFFFFFF;
 	total_header = 3;
