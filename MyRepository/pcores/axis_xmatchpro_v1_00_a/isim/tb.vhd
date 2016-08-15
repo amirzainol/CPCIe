@@ -157,7 +157,7 @@ END COMPONENT;
    constant HOST_CLK_period 		: time := 4 ns; -- 250 MHz of PCIe
 
 	-- Configuration
-	signal codec_selector 			: std_logic_vector(3 downto 0) := x"D"; -- Choose C for Compression, choose D for Decompression
+	signal codec_selector 			: std_logic_vector(3 downto 0) := x"C"; -- Choose C for Compression, choose D for Decompression
 
   BEGIN
 
