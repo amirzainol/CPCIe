@@ -3,7 +3,7 @@ XmpVersion: 14.7
 VerMgmt: 14.7
 IntStyle: default
 Flow: ise
-ModuleSearchPath: ../
+ModuleSearchPath: ../../
 MHS File: system.mhs
 Architecture: virtex7
 Device: xc7vx485t
@@ -25,6 +25,8 @@ UcfFile: data/system.ucf
 EnableParTimingError: 1
 ShowLicenseDialog: 1
 BInfo: 
+ICacheAddr: DDR3_SDRAM,C_S_AXI_BASEADDR
+DCacheAddr: DDR3_SDRAM,C_S_AXI_BASEADDR
 Processor: microblaze_0
 ElfImp: 
 ElfSim: 
