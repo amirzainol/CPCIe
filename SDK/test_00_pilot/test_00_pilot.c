@@ -51,13 +51,13 @@ XAxiDma AxiDmaD;
 
 int init_dma_c();
 void print(char *str);
-int xmatchpro_c(int file_size, int block_size, int offset);
+int xmatchpro_c(int file_size, int block_size, unsigned int offset);
 int xmatchpro_d(int file_size, int chunk_size, int offset);
 char *binbin(int n);
 
 /*************************** Dataset Definitions *****************************/
-void init_dataset_FF_1024();
-void init_dataset_alice_1024(int offset, int bytelength);
+
+void init_dataset_alice_1024(unsigned int offset, int bytelength);
 
 void print_addr(unsigned int addr, int bytelength, int bin_or_hex);
 void init_addr(unsigned int addr, int bytelength, unsigned int data);
@@ -69,7 +69,7 @@ int main()
 
 	int filesize = 1024;
 	int blocksize = 1024;
-	int offset = 0; // in Bytes
+	unsigned int offset = 0; // in Bytes
 	int k;
 
 	u32 *UXUBufferPtr;
@@ -79,25 +79,20 @@ int main()
     UXCBufferPtr = (u32 *)UXC_BUFFER_BASE;
     UXDBufferPtr = (u32 *)UXD_BUFFER_BASE;
 
-    //230 (E6)
-    //222 (DE)
-    //223 (DF)
-    //227 (E3)
-
     init_platform();
 
     init_dataset_alice_1024(offset, blocksize);
 
     // clear everything in compressed memory
-    init_addr(UXC_BUFFER_BASE+offset, blocksize, 0x00000000);
+    init_addr(UXC_BUFFER_BASE, 4096, 0x00000000);
 
-    //print_addr(UXU_BUFFER_BASE+offset, blocksize, 0);
+    //print_addr(UXU_BUFFER_BASE+offset, blocksize, 1);
 
     xmatchpro_c(filesize, blocksize, offset);
 
-    //print_addr(UXC_BUFFER_BASE+offset, blocksize, 0);
+    print_addr(UXC_BUFFER_BASE+offset, blocksize, 0);
 
-    xmatchpro_d(filesize, blocksize, offset);
+    //xmatchpro_d(filesize, blocksize, offset);
 
     //print_addr(UXD_BUFFER_BASE+offset, blocksize, 0);
 
@@ -136,17 +131,7 @@ void init_addr(unsigned int addr, int bytelength, unsigned int data)
 	for (i = 0; i < (bytelength/4); i++) {
 		addrPtr[i] = data;
 	}
-}
-
-void init_dataset_FF_1024()
-{
-	int k;
-	u32 *UXUBufferPtr;
-    UXUBufferPtr = (u32 *)UXU_BUFFER_BASE;
-	for (k = 0; k < (4096/4); k++) {
-		UXUBufferPtr[k] = 0xFFFFFFFF;
-	}
-	Xil_DCacheInvalidateRange((u32 *)UXU_BUFFER_BASE, 4096);
+	Xil_DCacheInvalidateRange((u32 *)addrPtr, bytelength);
 }
 
 int init_dma_c() {
@@ -203,7 +188,7 @@ int init_dma_d() {
 	return XST_SUCCESS;
 }
 
-int xmatchpro_c(int file_size, int block_size, int offset)
+int xmatchpro_c(int file_size, int block_size, unsigned int offset)
 {
 
 	int Status;
@@ -214,8 +199,8 @@ int xmatchpro_c(int file_size, int block_size, int offset)
 
 	int chunk_size;
 
-	UTxBufferPtr = (u32 *)UXU_BUFFER_BASE+offset;
-	CTxBufferPtr = (u32 *)UXC_BUFFER_BASE+offset;
+	UTxBufferPtr = (u32 *)(UXU_BUFFER_BASE+offset);
+	CTxBufferPtr = (u32 *)(UXC_BUFFER_BASE+offset);
 
 	Status = init_dma_c();
 	if(Status != XST_SUCCESS){
@@ -318,7 +303,7 @@ int xmatchpro_d(int file_size, int chunk_size, int offset)
 	return XST_SUCCESS;
 }
 
-void init_dataset_alice_1024(int offset, int bytelength)
+void init_dataset_alice_1024(unsigned int offset, int bytelength)
 {
 	int k;
 	u32 *UXUBufferPtr;
@@ -1349,5 +1334,5 @@ void init_dataset_alice_1024(int offset, int bytelength)
     UXUBufferPtr[1022] = 0b00001010010011000110111101101110;
     UXUBufferPtr[1023] = 0b01100111011010010111010001110101;
 
-	Xil_DCacheInvalidateRange((u32 *)UXU_BUFFER_BASE+(offset*4), bytelength);
+	Xil_DCacheInvalidateRange((u32 *)(UXU_BUFFER_BASE+offset), bytelength);
 }
