@@ -141,17 +141,15 @@ type states is	(
 signal cur_state     : states;
 signal next_state    : states;
 
-signal reg_ADDRESS		:  std_logic_vector(3 downto 0);
-signal reg_CONTROL		:  std_logic_vector(3 downto 0);
+
+
 signal reg_THRESHOLD		:  std_logic_vector(7 downto 0);
 signal reg_BLOCKSIZE		:  std_logic_vector(31 downto 0) := (others => '0');
 signal reg_FILESIZE 		: std_logic_vector(31 downto 0) := (others => '0');
 
 signal U_DATAIN_reg				: std_logic_vector(31 downto 0):= (others => '0');
 
-signal clr_CODMU			:  STD_LOGIC;
 
-signal CLR_XMATCH_C		:  STD_LOGIC := '1';
 
 -- used for checking purposes if the uncompressed file almost reach 0
 signal counter_BLOCKSIZE 	: std_logic_vector(31 downto 0) := (others => '0');
@@ -194,8 +192,6 @@ signal din_hdr						: STD_LOGIC_VECTOR(31 DOWNTO 0) := (others => '0');
 signal dout_hdr					: STD_LOGIC_VECTOR(31 DOWNTO 0);
 
 signal count_int 					: std_logic_vector(31 downto 0) := x"00000000";
-signal select_counter 			: STD_LOGIC_VECTOR(7 DOWNTO 0) := (others => '0');
-signal total_counter_reg 		: std_logic_vector(31 downto 0) := x"00000000";
 
 signal reg_CHUNKSIZE				: STD_LOGIC_VECTOR(31 DOWNTO 0) := (others => '0');
 signal reg_CHUNKSIZE_COUNT		: STD_LOGIC_VECTOR(31 DOWNTO 0) := (others => '0');
@@ -206,7 +202,7 @@ signal TOTAL_COMPRESSED_SIZE	: STD_LOGIC_VECTOR(31 DOWNTO 0) := (others => '0');
 signal TOTAL_COMPRESSED_SIZE_n: STD_LOGIC_VECTOR(31 DOWNTO 0) := (others => '0');
 
 signal status_FIFO				: std_logic_vector(3 downto 0):= (others => '0');
-signal status_HW					: std_logic_vector(1 downto 0):= (others => '0');
+
 signal status_UC					: std_logic_vector(5 downto 0):= (others => '0');
 signal bitvec_xmatch 			: bit_vector(5 downto 0);
 signal stdvec_xmatch 			: std_logic_vector(5 downto 0);
@@ -224,24 +220,21 @@ signal status_overflow			: std_logic_vector(3 downto 0);
 
 begin
 
---XMATCH_C_STAT <= "0000000" & FINISHED_C_all & status_FIFO & TOTAL_COMPRESSED_SIZE(11 downto 8) & WAIT_CU_std_lgc & WAIT_CC_std_lgc & status_UC & count_int(7 downto 0);
---XMATCH_C_SIZE <= U_DATAIN_reg;
-
 XMATCH_C_STAT <= "0000000" & FINISHED_C_all & status_FIFO & status_UC & reg_CHUNKSIZE(13 downto 0);
 XMATCH_C_SIZE <= '0' & WAIT_CU_std_lgc & WAIT_CC_std_lgc & status_overflow & TOTAL_COMPRESSED_SIZE(24 downto 0);
 
-bitvec_xmatch <= 	  FINISHED_C_bit 			-- 5
-						& COMPRESSING_bit 		-- 4
-						& C_DATA_VALID_bit		-- 3
-						& BUS_REQ_CC_bit 			-- 2
-						& BUS_REQ_CU_bit 			-- 1
-						& INTR_REQ_bit;			-- 0
+bitvec_xmatch <=  FINISHED_C_bit 		-- 5
+		& COMPRESSING_bit 		-- 4
+		& C_DATA_VALID_bit		-- 3
+		& BUS_REQ_CC_bit 		-- 2
+		& BUS_REQ_CU_bit 		-- 1
+		& INTR_REQ_bit;			-- 0
 stdvec_xmatch <= to_stdlogicvector(bitvec_xmatch);
 
 status_overflow <= FI_overflow & FI_underflow & FO_overflow & FO_underflow;
 
 status_FIFO <= FIFO_INPUT_full & FIFO_INPUT_empty & FIFO_OUTPUT_full & FIFO_OUTPUT_empty;
---status_HW 	<= not (stdvec_xmatch(0)) & not (stdvec_xmatch(1)); -- CODING_OVERFLOW_bit & CRC_ERROR_bit
+
 status_UC	<=   (stdvec_xmatch(5))
 					& (stdvec_xmatch(4))
 					& (stdvec_xmatch(3))
@@ -336,11 +329,9 @@ elsif ((XMATCH_CLK'event) and (XMATCH_CLK = '1')) then
 end if;
 end process U_DATAIN_PROCESS;
 
-BUS_ACK_CU_PROCESS: process (XMATCH_CLK, clr_CODMU) is
+BUS_ACK_CU_PROCESS: process (XMATCH_CLK) is
 begin
-if (clr_CODMU = '0') then
-	BUS_ACK_CU_bit <= '1';
-elsif ((XMATCH_CLK'event) and (XMATCH_CLK = '1')) then
+if ((XMATCH_CLK'event) and (XMATCH_CLK = '1')) then
 	if (BUS_REQ_CU_bit = '1') then
       BUS_ACK_CU_bit		<= '1';
 	else
@@ -349,11 +340,9 @@ elsif ((XMATCH_CLK'event) and (XMATCH_CLK = '1')) then
  end if;
 end process BUS_ACK_CU_PROCESS;
 
-BUS_ACK_CC_PROCESS: process (XMATCH_CLK, clr_CODMU) is
+BUS_ACK_CC_PROCESS: process (XMATCH_CLK) is
 begin
-if (clr_CODMU = '0') then
-	BUS_ACK_CC_bit <= '1';
-elsif ((XMATCH_CLK'event) and (XMATCH_CLK = '1')) then
+if ((XMATCH_CLK'event) and (XMATCH_CLK = '1')) then
 	if (BUS_REQ_CC_bit = '1') then
       BUS_ACK_CC_bit		<= '1';
 	else
@@ -372,9 +361,9 @@ begin
 			WAIT_CC_std_lgc	<= '0';
 		end if;
 end process WAIT_CC_PROCESS;
-
+	
 -- This counter is used to count for block size declaration
-COUNTER_BLOCKSIZE_PROCESS: process (XMATCH_CLK, clr_CODMU, cur_state, XMATCH_rd_en, U_DATAIN_reg) is
+COUNTER_BLOCKSIZE_PROCESS: process (XMATCH_CLK, cur_state, XMATCH_rd_en, U_DATAIN_reg) is
 begin
 	if ((XMATCH_CLK'event) and (XMATCH_CLK = '1')) then
 		if XMATCH_rd_en = '1' and U_DATAIN_reg /= x"00000000" then
@@ -390,7 +379,7 @@ begin
 end process COUNTER_BLOCKSIZE_PROCESS;
 
 -- This counter is used to count the compressed file
-COUNTER_COMPRESSED_PROCESS: process (XMATCH_CLK, clr_CODMU, cur_state, XMATCH_wr_en) is
+COUNTER_COMPRESSED_PROCESS: process (XMATCH_CLK, cur_state, XMATCH_wr_en) is
 begin
 	if ((XMATCH_CLK'event) and (XMATCH_CLK = '1')) then
 		if XMATCH_wr_en = '1' then
@@ -424,15 +413,6 @@ begin
   end if;
 end process SM_SEQ;
 
-
-
----- State machine (combinatorial process)
---SM_COMB: process (cur_state, reg_ADDRESS, reg_FILESIZE, counter_BLOCKSIZE, XMATCH_CMD_UC,
---						BUS_REQ_CU_bit, FINISHED_C_bit, U_DATAIN_reg, reg_CHUNKSIZE_COUNT, empty_d1,
---						FIFO_INPUT_empty, INTR_REQ_bit, FIFO_OUTPUT_empty, TOTAL_COMPRESSED_SIZE,
---						COMPRESSING_bit, XMATCH_din,
---						count_int, addr_hdr_ptr) is
-
 -- State machine (combinatorial process)
 SM_COMB: process (cur_state, XMATCH_CMD_UC, addr_hdr_ptr, U_DATAIN_reg,
 						BUS_REQ_CU_bit, FINISHED_C_bit, addr_hdr, dout_hdr,
@@ -451,8 +431,7 @@ WAIT_CU_bit 		<= '0';
 WAIT_CU_std_lgc	<= '0';
 INTR_ACK_bit 		<= '1';
 XMATCH_rd_en		<= '0';
-clr_CODMU			<= '1';
-CLR_XMATCH_C		<= '1';
+
 FINISHED_C_all 	<= '0';
 reg_CHUNKSIZE_COUNT_next	<= reg_CHUNKSIZE_COUNT;
 TOTAL_COMPRESSED_SIZE_n <= TOTAL_COMPRESSED_SIZE;
@@ -470,8 +449,8 @@ case cur_state is
 		end case;
 
 	when COMPRESS_START =>
-		reg_ADDRESS <= XMATCH_CMD_UC(31 downto 28);
-		reg_CONTROL <= XMATCH_CMD_UC(27 downto 24);
+
+		
 		reg_THRESHOLD <= XMATCH_CMD_UC(23 downto 16);
 		next_state <=   COMPRESS_START1;
 
@@ -529,7 +508,6 @@ case cur_state is
 	-- Compression wait if bus request CU is ready, and the FIFO of CoDMU is not empty (has data)
 	when COMPRESS_WAIT =>
 		if BUS_REQ_CU_bit = '0' and FIFO_INPUT_empty = '0' then
---		if BUS_REQ_CU_bit = '0' then
 			next_state 			<= COMPRESS_WAIT_BUS_ACK_CU;
 		else
 			next_state 			<= COMPRESS_WAIT;
@@ -585,7 +563,6 @@ case cur_state is
 	when COMPRESS_WAIT_INTERRUPT_REQUEST =>
 		if INTR_REQ_bit = '0' then
 			INTR_ACK_bit <= '0';
---			clr_CODMU		<= '0';
 			next_state 		<= COMPRESS_SAVE_COMPRESSED_CHUNK_SIZE;
 		else
 			next_state 		<= COMPRESS_WAIT_INTERRUPT_REQUEST;
@@ -638,7 +615,6 @@ case cur_state is
 
 	when C_FLUSH_FIFO =>
 		if (empty_d1 = '0') then
---			FINISHED_C_all <= '1';
 			next_state <= C_FLUSH_FIFO_WAIT_EMPTY;
 		else
 			next_state <= C_FLUSH_FIFO;
