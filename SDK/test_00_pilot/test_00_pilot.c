@@ -72,9 +72,9 @@ int main()
 	unsigned int offset = 0; // in Bytes
 	int k;
 
-	u32 *UXUBufferPtr;
-	u32 *UXCBufferPtr;
-	u32 *UXDBufferPtr;
+    u32 *UXUBufferPtr;
+    u32 *UXCBufferPtr;
+    u32 *UXDBufferPtr;
     UXUBufferPtr = (u32 *)UXU_BUFFER_BASE;
     UXCBufferPtr = (u32 *)UXC_BUFFER_BASE;
     UXDBufferPtr = (u32 *)UXD_BUFFER_BASE;
@@ -84,7 +84,7 @@ int main()
     init_dataset_alice_1024(offset, blocksize);
 
     // clear everything in compressed memory
-    init_addr(UXC_BUFFER_BASE, 4096, 0x00000000);
+    init_addr(UXC_BUFFER_BASE, filesize, 0x00000000);
 
     //print_addr(UXU_BUFFER_BASE+offset, blocksize, 1);
 
