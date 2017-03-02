@@ -1,0 +1,84 @@
+{
+   guistr: "# # String gsaved with Nlview 6.4.10  2014-10-02 bk=1.3207 VDI=35 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port RESETN -pg 1 -y 850 -defaultsOSRD
+preplace port CLK -pg 1 -y 830 -defaultsOSRD
+preplace port M_AXIS_tvalid -pg 1 -y 850 -defaultsOSRD
+preplace port S_AXIS_tvalid -pg 1 -y 440 -defaultsOSRD
+preplace port M_AXIS_tready -pg 1 -y 890 -defaultsOSRD
+preplace portBus M_AXIS_tdata -pg 1 -y 870 -defaultsOSRD
+preplace portBus S_AXIS_tready -pg 1 -y 810 -defaultsOSRD
+preplace portBus CRC_32_C -pg 1 -y 360 -defaultsOSRD
+preplace portBus S_AXIS_tdata -pg 1 -y 340 -defaultsOSRD
+preplace portBus STATUS -pg 1 -y 670 -defaultsOSRD
+preplace portBus INTERRUPT_REQ_C -pg 1 -y 830 -defaultsOSRD
+preplace portBus COMMAND -pg 1 -y 870 -defaultsOSRD
+preplace inst xpro_c_engine_0 -pg 1 -lvl 5 -y 250 -defaultsOSRD
+preplace inst FIFO_CC -pg 1 -lvl 2 -y 710 -defaultsOSRD
+preplace inst xpro_d_controller_0 -pg 1 -lvl 1 -y 1000 -defaultsOSRD
+preplace inst STAT -pg 1 -lvl 5 -y 660 -defaultsOSRD
+preplace inst xpro_c_controller_0 -pg 1 -lvl 4 -y 220 -defaultsOSRD
+preplace inst FIFO_CU -pg 1 -lvl 3 -y 360 -defaultsOSRD
+preplace inst xpro_d_engine_0 -pg 1 -lvl 3 -y 1080 -defaultsOSRD
+preplace netloc xpro_c_engine_0_CRC_ERROR 1 4 2 2190 820 2570
+preplace netloc FIFO_CU_s_axis_tready 1 3 3 1540 470 NJ 430 NJ
+preplace netloc xpro_d_controller_0_CS_RW 1 1 2 N 990 1100
+preplace netloc xpro_c_controller_0_WAIT_CU 1 2 3 1110 550 NJ 550 2020
+preplace netloc xpro_c_controller_0_BUS_ACK_CC 1 4 1 2180
+preplace netloc s_axis_tdata_1 1 1 5 670 880 NJ 890 NJ 900 NJ 900 2620
+preplace netloc FIFO_CC_Res1 1 2 1 1000
+preplace netloc CLK_1 1 0 5 210 760 570 1050 1030 520 1580 570 2090
+preplace netloc xpro_c_controller_0_READ_FIFO_CU 1 2 3 1120 490 NJ 490 1980
+preplace netloc FIFO_CC_m_axis_tdata 1 2 4 1010 740 NJ 870 NJ 870 NJ
+preplace netloc xpro_d_controller_0_CTRL_IN 1 1 2 N 1030 NJ
+preplace netloc xpro_d_controller_0_BUS_ACK_DU 1 1 2 560 1110 NJ
+preplace netloc xpro_c_engine_0_BUS_REQUEST_CU 1 2 4 1080 510 1590 670 2130 470 2550
+preplace netloc xpro_c_controller_0_INTR_ACK_C 1 2 3 1120 910 NJ 990 2070
+preplace netloc xpro_c_controller_0_CTRL_IN 1 4 1 N
+preplace netloc FIFO_CC_m_axis_tdata1 1 2 1 980
+preplace netloc COMMAND_1 1 0 4 190 530 NJ 530 NJ 710 1510
+preplace netloc xpro_d_engine_0_BUS_REQUEST_DU 1 0 4 240 840 NJ 900 NJ 900 1470
+preplace netloc xpro_c_controller_0_RST_FIFO_CU 1 2 3 1090 530 NJ 530 2000
+preplace netloc xpro_c_controller_0_RESTART_DECOMPRESSOR 1 0 5 220 750 NJ 860 NJ 860 NJ 880 2050
+preplace netloc xlconcat_1_dout 1 5 1 N
+preplace netloc xpro_d_controller_0_WAIT_DU 1 1 2 550 1150 NJ
+preplace netloc xpro_c_controller_0_U_WAIT_CU 1 2 3 1100 540 NJ 540 2100
+preplace netloc xpro_c_controller_0_BUSY 1 2 3 1120 220 NJ 460 1990
+preplace netloc FIFO_CC_m_axis_tvalid1 1 2 2 NJ 750 1560
+preplace netloc xpro_d_engine_0_INTERRUPT_REQ_D 1 3 1 1550
+preplace netloc xpro_c_controller_0_CS_RW 1 4 1 2090
+preplace netloc xpro_c_controller_0_BUS_ACK_CU 1 4 1 2120
+preplace netloc STAT_Q 1 0 6 250 820 620 870 NJ 880 NJ 890 NJ 890 2530
+preplace netloc FIFO_CU_tdata 1 3 1 1490
+preplace netloc xpro_c_controller_0_ADDR 1 4 1 N
+preplace netloc M_AXIS_tready_1 1 0 2 200 770 N
+preplace netloc FIFO_CU_dout 1 3 1 1470
+preplace netloc xpro_c_engine_0_C_DATA_VALID 1 1 5 640 500 NJ 680 NJ 680 2040 850 2590
+preplace netloc xpro_c_engine_0_COMPRESSING 1 4 2 2180 450 2580
+preplace netloc xpro_c_engine_0_CODING_OVERFLOW 1 4 2 2190 460 2560
+preplace netloc S_AXIS_tvalid_1 1 0 3 NJ 440 NJ 440 N
+preplace netloc Op4_2 1 1 5 670 540 NJ 720 1530 450 NJ 410 2540
+preplace netloc FIFO_CU_wait_cu 1 3 1 1500
+preplace netloc FIFO_CU_Q3 1 3 1 1540
+preplace netloc xpro_c_engine_0_FLUSHING_C 1 4 2 2180 840 2600
+preplace netloc xpro_c_controller_0_WAIT_CC 1 1 4 650 510 NJ 690 NJ 690 2030
+preplace netloc xpro_c_controller_0_RST_ENGINE 1 4 1 2050
+preplace netloc din_1 1 0 3 NJ 340 NJ 340 N
+preplace netloc FIFO_CC_Res 1 2 3 1000 500 NJ 500 NJ
+preplace netloc xpro_c_engine_0_CRC_32_C 1 3 3 1610 560 NJ 440 2640
+preplace netloc xpro_c_controller_0_U_DATA_OUT 1 4 1 2110
+preplace netloc xpro_c_controller_0_M_AXIS_TVALID_OUT 1 4 2 2060 490 2630
+preplace netloc xpro_d_engine_0_CRC_OUT_D_32 1 3 1 1570
+preplace netloc xpro_d_controller_0_RST_ENGINE 1 1 2 N 1090 NJ
+preplace netloc xpro_d_controller_0_BUS_ACK_DC 1 1 2 590 1100 NJ
+preplace netloc xpro_c_engine_0_FINISHED_C 1 4 2 2170 830 2610
+preplace netloc xpro_c_engine_0_BUS_REQUEST_CC 1 3 3 1600 660 2160 420 2530
+preplace netloc RESETN_1 1 0 4 180 550 NJ 550 NJ 730 1520
+preplace netloc xpro_d_engine_0_BUS_REQUEST_DC 1 0 4 230 830 600 920 NJ 920 1460
+preplace netloc xpro_d_controller_0_ADDR 1 1 2 N 1010 NJ
+preplace netloc xpro_c_controller_0_RST_FIFO_CC 1 1 4 660 520 NJ 700 NJ 700 2010
+preplace netloc xpro_c_controller_0_FLUSH_FIFO_CC 1 1 5 630 490 NJ 650 NJ 650 2140 480 2640
+preplace netloc FIFO_CU_doutb 1 3 1 1460
+levelinfo -pg 1 160 400 820 1290 1800 2360 2670
+",
+}
