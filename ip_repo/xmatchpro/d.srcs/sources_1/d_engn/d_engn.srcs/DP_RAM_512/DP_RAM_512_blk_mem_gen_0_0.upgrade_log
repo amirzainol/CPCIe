@@ -1,0 +1,16 @@
+Copyright 1986-2014 Xilinx, Inc. All Rights Reserved.
+------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2014.4 (win64) Build 1071353 Tue Nov 18 18:29:27 MST 2014
+| Date         : Sun Jan 01 17:48:17 2017
+| Host         : UK running 64-bit major release  (build 9200)
+| Command      : upgrade_ip
+| Device       : xc7vx485tffg1761-2
+------------------------------------------------------------------------------------
+
+Upgrade Log for IP 'DP_RAM_512_blk_mem_gen_0_0'
+
+1. Summary
+----------
+
+SUCCESS in the update of DP_RAM_512_blk_mem_gen_0_0 (xilinx.com:ip:blk_mem_gen:8.2 (Rev. 3)) to current project options.
+
