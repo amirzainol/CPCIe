@@ -1,0 +1,69 @@
+{
+   guistr: "# # String gsaved with Nlview 6.4.10  2014-10-02 bk=1.3207 VDI=35 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port RESETN -pg 1 -y 630 -defaultsOSRD
+preplace port CLK -pg 1 -y 320 -defaultsOSRD
+preplace port M_AXIS_tvalid -pg 1 -y 570 -defaultsOSRD
+preplace port S_AXIS_tvalid -pg 1 -y 440 -defaultsOSRD
+preplace port M_AXIS_tready -pg 1 -y 510 -defaultsOSRD
+preplace portBus M_AXIS_tdata -pg 1 -y 550 -defaultsOSRD
+preplace portBus S_AXIS_tready -pg 1 -y 440 -defaultsOSRD
+preplace portBus COMPRESSED_SIZE -pg 1 -y 670 -defaultsOSRD
+preplace portBus CRC_32_D -pg 1 -y 420 -defaultsOSRD
+preplace portBus S_AXIS_tdata -pg 1 -y 400 -defaultsOSRD
+preplace portBus STATUS -pg 1 -y 170 -defaultsOSRD
+preplace portBus INTERRUPT_REQ_D -pg 1 -y 370 -defaultsOSRD
+preplace portBus COMMAND -pg 1 -y 650 -defaultsOSRD
+preplace inst xpro_d_controller_0 -pg 1 -lvl 2 -y 690 -defaultsOSRD
+preplace inst gnd -pg 1 -lvl 1 -y 720 -defaultsOSRD
+preplace inst STAT -pg 1 -lvl 4 -y 170 -defaultsOSRD
+preplace inst FIFO_DU -pg 1 -lvl 3 -y 560 -defaultsOSRD
+preplace inst util_vector_logic_0 -pg 1 -lvl 4 -y 370 -defaultsOSRD
+preplace inst xpro_d_engine_0 -pg 1 -lvl 3 -y 220 -defaultsOSRD
+preplace inst FIFO_DC -pg 1 -lvl 1 -y 380 -defaultsOSRD
+preplace netloc xpro_d_engine_0_DECODING_OVERFLOW 1 3 1 N
+preplace netloc xpro_d_controller_0_WAIT_DC 1 0 3 240 520 NJ 520 810
+preplace netloc wr_en_1 1 0 1 NJ
+preplace netloc Op1_1 1 1 3 450 420 NJ 420 1430
+preplace netloc FIFO_DC_Res 1 1 2 NJ 370 880
+preplace netloc xpro_d_controller_0_CS_RW 1 2 1 840
+preplace netloc CLK_1 1 0 3 220 540 480 510 940
+preplace netloc xpro_d_engine_0_U_DATAOUT 1 2 2 980 450 1330
+preplace netloc gnd_dout 1 1 1 NJ
+preplace netloc Op2_1 1 3 1 1460
+preplace netloc COMPRESSED_SIZE_1 1 0 2 NJ 670 NJ
+preplace netloc xpro_d_engine_0_FLUSHING_D 1 3 1 1350
+preplace netloc xpro_d_controller_0_CTRL_IN 1 2 1 900
+preplace netloc xpro_d_controller_0_BUS_ACK_DU 1 2 1 870
+preplace netloc COMMAND_1 1 0 2 NJ 650 NJ
+preplace netloc xpro_d_engine_0_BUS_REQUEST_DU 1 1 3 500 330 NJ 400 1360
+preplace netloc util_vector_logic_0_Res 1 4 1 NJ
+preplace netloc xpro_d_controller_0_WAIT_DU 1 2 1 960
+preplace netloc xpro_d_controller_0_RST_FIFO_DC 1 0 3 250 530 NJ 530 800
+preplace netloc xpro_d_controller_0_COUNT_FINISH 1 0 3 260 490 NJ 480 830
+preplace netloc xpro_d_engine_0_U_DATA_VALID 1 2 2 970 440 1370
+preplace netloc xpro_d_engine_0_INTERRUPT_REQ_D 1 1 3 500 850 NJ 850 1420
+preplace netloc xpro_d_controller_0_INTR_ACK_D 1 2 1 930
+preplace netloc FIFO_DU_Res 1 2 2 980 380 1320
+preplace netloc xpro_d_engine_0_DECOMPRESSING 1 3 1 1380
+preplace netloc din_1 1 0 1 NJ
+preplace netloc STAT_dout 1 4 1 NJ
+preplace netloc xpro_d_engine_0_FINISHED_D 1 3 1 1390
+preplace netloc xpro_d_controller_0_RST_FIFO_DU 1 2 1 970
+preplace netloc FIFO_DC_Q1 1 1 2 NJ 350 890
+preplace netloc CLEAR_1 1 0 2 NJ 630 NJ
+preplace netloc xpro_d_engine_0_CRC_OUT_D_32 1 3 2 NJ 420 NJ
+preplace netloc xpro_d_controller_0_RST_ENGINE 1 2 1 950
+preplace netloc xpro_d_controller_0_BUS_ACK_DC 1 0 3 230 500 NJ 490 820
+preplace netloc In10_1 1 1 3 NJ 430 NJ 430 1400
+preplace netloc FIFO_DU_m_axis_tvalid 1 3 2 1450 570 NJ
+preplace netloc FIFO_DC_Q 1 1 2 NJ 340 820
+preplace netloc xpro_d_engine_0_CRC_ERROR 1 3 1 N
+preplace netloc xpro_d_engine_0_BUS_REQUEST_DC 1 1 3 490 320 NJ 390 1340
+preplace netloc xpro_d_controller_0_ADDR 1 2 1 850
+preplace netloc m_axis_tready_1 1 0 3 NJ 510 NJ 500 NJ
+preplace netloc FIFO_DU_m_axis_tdata 1 3 2 NJ 550 NJ
+preplace netloc FIFO_DC_Res1 1 1 4 NJ 410 NJ 410 NJ 430 NJ
+levelinfo -pg 1 200 350 650 1150 1550 1660
+",
+}
