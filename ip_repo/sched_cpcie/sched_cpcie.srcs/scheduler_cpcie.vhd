@@ -58,7 +58,7 @@ end scheduler_cpcie;
 
 architecture arch_imp of scheduler_cpcie is
 
-	--------------------------------------------------------------------------------
+	-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 	signal filesize_count        : std_logic_vector(31 downto 0);
 	signal filesize_count_finish : std_logic := '0';
@@ -68,7 +68,7 @@ architecture arch_imp of scheduler_cpcie is
 	signal fork_dest_logic_or : std_logic := '0';
 
 	signal s_sched_tdest : std_logic_vector(3 downto 0) := "0001"; --by default
-	
+
 	signal sup_dest, sup_dest_next : std_logic_vector(3 downto 0) := "0001"; --by default
 
 	signal sched_tready_c : std_logic := '0';
@@ -103,23 +103,33 @@ architecture arch_imp of scheduler_cpcie is
 		                  st_d_3,
 		                  st_d_4,
 		                  st_d_4_CRC,
-		                  st_d_5
+		                  st_d_4_wait,
+		                  st_d_wait_1,
+		                  st_d_wait_2,
+		                  st_d_wait_3,
+		                  st_d_wait_3_ready,
+		                  st_d_wait_3_ready_10_is_1,
+		                  st_d_5,
+		                  st_d_wait_3_10_wait_1,
+		                  st_d_wait_3_10_wait_2,
+		                  st_d_wait_3_10_wait_3,
+		                  st_d_wait_3_10_wait_4
 	);
 	signal state_d, next_state_d : state_type_d;
 
-	signal s_axis_tvalid_d      : std_logic := '0';
-	signal s_axis_tvalid_d_next : std_logic := '0';
+	signal s_axis_tvalid_d      : std_logic                    := '0';
+	signal s_axis_tvalid_d_next : std_logic                    := '0';
 	signal s_axis_tdata_d       : std_logic_vector(31 downto 0);
 	signal s_axis_tdata_d_next  : std_logic_vector(31 downto 0);
 	signal s_sched_tdest_d      : std_logic_vector(3 downto 0) := "0001"; --by default
 	signal s_sched_tdest_d_next : std_logic_vector(3 downto 0);
-	signal sched_tready_d       : std_logic := '0';
-	signal sched_tready_d_next  : std_logic := '0';
+	signal sched_tready_d       : std_logic                    := '0';
+	signal sched_tready_d_next  : std_logic                    := '0';
 	signal count_chunk          : std_logic_vector(15 downto 0);
 	signal count_chunk_next     : std_logic_vector(15 downto 0);
-	signal s_axis_tvalid_h      : std_logic := '0';
+	signal s_axis_tvalid_h      : std_logic                    := '0';
 
-	type state_type_h is (st_count_idle, st_count_1, st_count_2, st_count_3, st_count_4);
+	type state_type_h is (st_count_idle, st_count_1, st_count_2, st_count_3, st_count_wait, st_count_4, st_count_4_wait, st_count_4_wait_ready);
 	signal state_count, next_state_count : state_type_h;
 
 	signal count_h_size      : std_logic_vector(15 downto 0);
@@ -216,42 +226,92 @@ architecture arch_imp of scheduler_cpcie is
 	signal s_axis_tvalid_reg       : std_logic := '0';
 	signal s_axis_header_tdata_reg : std_logic_vector(31 downto 0);
 
-    signal intr_done : std_logic := '0';
-    
-    signal i : integer;
-    
-    signal engine_lock : std_logic_vector(3 downto 0); -- total engines are 4
-    
+	signal intr_done : std_logic := '0';
+
+	signal i : integer;
+
+	signal engine_lock : std_logic_vector(3 downto 0); -- total engines are 4
+
+	signal check_next_engine : std_logic_vector(3 downto 0);
+	signal check_rdy_all     : std_logic_vector(3 downto 0);
+	signal check_nxt_eng_bit : std_logic;
+
+	signal status_engine_all      : std_logic_vector(3 downto 0);
+	signal next_ready_engine      : std_logic_vector(3 downto 0);
+	signal nxt_rdy_eng_bit        : std_logic;
+	signal nxt_rdy_eng_bit_tvalid : std_logic;
+
+	signal wait_next_ready_engine : std_logic_vector(3 downto 0);
+	signal wait_nxt_rdy_eng_bit   : std_logic;
+
+	signal s_axis_tready_d       : std_logic := '0';
+	signal s_axis_tvalid_d_split : std_logic := '0';
+
+	signal s_axis_tdata_d_split : std_logic_vector(31 downto 0) := x"00000000";
+
+	signal status_engine_full : std_logic_vector(3 downto 0);
+	signal check_engine_full  : std_logic_vector(3 downto 0);
+	signal check_eng_full_bit : std_logic;
+
 begin
 
--- Notes on status_engine_* --
--- 0: Finished D
--- 1: Decompressing
--- 2: Flushing D
--- 3: U Data Valid
--- 4: Decoding Overflow
--- 5: CRC Error
--- 6: Bus Req DC
--- 7: Bus Req DU
--- 8: Interrupt Req D
--- 9: FIFO DC Empty
---10: FIFO DC Full
---11: FIFO DU not Empty (M_tvalid)
---12: FIFO DU not Full (S_tready)
+	-- Notes on status_engine_* --
+	-- 0: Finished D
+	-- 1: Decompressing
+	-- 2: Flushing D
+	-- 3: U Data Valid
+	-- 4: Decoding Overflow
+	-- 5: CRC Error
+	-- 6: Bus Req DC
+	-- 7: Bus Req DU
+	-- 8: Interrupt Req D
+	-- 9: FIFO DC Empty
+	--10: FIFO DC Full
+	--11: FIFO DU not Empty (M_tvalid)
+	--12: FIFO DU not Full (S_tready)
 
-    status <= "0000000000000000000000000000000" & intr_done;
-    
+	-- Notes on command_engine_* --
+	-- 24: INIT_PULSE
+	-- 25: RST_FIFO_ CC/DU
+	-- 26: RST_FIFO_ CU/DC
+	-- 27: RST_ENGINE
+	-- 28: INTR_ACK_D
+	-- 31: RST_ALL
+
+	status <= "0000000000000000000000000000000" & intr_done;
+
 	sel_cd <= command_in(30 downto 29);
 
 	s_axis_header_tready <= header_ready;
-	s_axis_tready        <= sched_tready_c when sel_cd = "10" else sched_tready_d when sel_cd = "01" else '0';
+	s_axis_tready        <= sched_tready_c when sel_cd = "10" else s_axis_tready_d when sel_cd = "01" else '0';
 	sched_tvalid         <= s_axis_tvalid;
 
 	sched_tready_c        <= m_axis_fork_tready(0) and fork_dest_logic_or;
-	m_axis_fork_tvalid(0) <= s_axis_tvalid when sel_cd = "10" else s_axis_tvalid_d when sel_cd = "01" else '0';
-	m_axis_fork_tdata     <= s_axis_tdata when sel_cd = "10" else s_axis_tdata_d when sel_cd = "01" else x"00000000";
-	m_axis_fork_tdest     <= s_sched_tdest when sel_cd = "10" else s_sched_tdest_d when sel_cd = "01" else x"0";
-	--m_axis_fork_tdest     <= s_sched_tdest_d;
+	m_axis_fork_tvalid(0) <= s_axis_tvalid when sel_cd = "10" else s_axis_tvalid_d_split when sel_cd = "01" else '0';
+	m_axis_fork_tdata     <= s_axis_tdata when sel_cd = "10" else s_axis_tdata_d_split when sel_cd = "01" else x"00000000";
+	m_axis_fork_tdest     <= s_sched_tdest when sel_cd = "10" else sup_dest when sel_cd = "01" else x"0";
+
+	s_axis_tdata_d_split <= s_axis_tdata_reg;
+
+	status_engine_full <= status_engine_3(10) & status_engine_2(10) & status_engine_1(10) & status_engine_0(10);
+	check_engine_full  <= sup_dest and status_engine_full;
+	check_eng_full_bit <= check_engine_full(3) or check_engine_full(2) or check_engine_full(1) or check_engine_full(0);
+
+	status_engine_all      <= status_engine_3(8) & status_engine_2(8) & status_engine_1(8) & status_engine_0(8);
+
+	next_ready_engine      <= sup_dest and status_engine_all;
+	nxt_rdy_eng_bit        <= next_ready_engine(3) or next_ready_engine(2) or next_ready_engine(1) or next_ready_engine(0);
+	nxt_rdy_eng_bit_tvalid <= s_axis_tvalid_d_next;
+
+	check_next_engine(0) <= next_ready_engine(3);
+	check_next_engine(1) <= next_ready_engine(0);
+	check_next_engine(2) <= next_ready_engine(1);
+	check_next_engine(3) <= next_ready_engine(2);
+	check_rdy_all        <= check_next_engine and status_engine_all;
+	check_nxt_eng_bit    <= check_rdy_all(3) or check_rdy_all(2) or check_rdy_all(1) or check_rdy_all(0);
+
+	wait_next_ready_engine <= sup_dest and status_engine_all;
+	wait_nxt_rdy_eng_bit   <= wait_next_ready_engine(3) or wait_next_ready_engine(2) or wait_next_ready_engine(1) or wait_next_ready_engine(0);
 
 	-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	-- Process:	Create a pulse
@@ -422,7 +482,6 @@ begin
 	-- Purpose:	CRC output of each engine
 	-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
 	process(clk)
 	begin
 		if (clk'event and clk = '1') then
@@ -473,9 +532,7 @@ begin
 	end process;
 
 	fork_dest_logic_or <= s_sched_tdest(3) or s_sched_tdest(2) or s_sched_tdest(1) or s_sched_tdest(0);
-	--fork_dest_logic_or <= s_sched_tdest_d(3) or s_sched_tdest_d(2) or s_sched_tdest_d(1) or s_sched_tdest_d(0);
-	--fork_dest_logic_or <= sup_dest(3) or sup_dest(2) or sup_dest(1) or sup_dest(0);
-	
+
 	process(clk, sched_tvalid, sched_tready_c, count_tick, rstn)
 	begin
 		if (clk = '1' and clk'event) then
@@ -507,38 +564,25 @@ begin
 	-- shift register
 	process(clk)
 	begin
-        if (clk = '1' and clk'event) then
-            if rstn = '0' then
-                s_sched_tdest <= "0001";
-            elsif (sched_tick = '1') then
-			    s_sched_tdest(0) <= sched_tick_in;
-                s_sched_tdest(1) <= s_sched_tdest(0);
-                s_sched_tdest(2) <= s_sched_tdest(1);
-                s_sched_tdest(3) <= s_sched_tdest(2);
-            end if;
-        end if;
+		if (clk = '1' and clk'event) then
+			if rstn = '0' then
+				s_sched_tdest <= "0001";
+			elsif (sched_tick = '1') then
+				s_sched_tdest(0) <= sched_tick_in;
+				s_sched_tdest(1) <= s_sched_tdest(0);
+				s_sched_tdest(2) <= s_sched_tdest(1);
+				s_sched_tdest(3) <= s_sched_tdest(2);
+			end if;
+		end if;
 	end process;
-	
---	-- shift register
---	process(sched_tick)
---	begin
---		if (sched_tick = '1') then
---			s_sched_tdest(0) <= sched_tick_in;
---			s_sched_tdest(1) <= s_sched_tdest(0);
---			s_sched_tdest(2) <= s_sched_tdest(1);
---			s_sched_tdest(3) <= s_sched_tdest(2);
---		else
---			s_sched_tdest <= s_sched_tdest;
---		end if;
---	end process;
 
 	COUNT_TICK_PROCESS : process(clk, count_tick_next, count_h_size, sel_cd)
 	begin
 		if (clk'event and clk = '1') then
 			if (count_tick_next = 3 and sel_cd = "10") then
 				sched_tick <= '1';
-		    elsif (count_h_size = 2 and sel_cd = "01") then
-		        sched_tick <= '1';
+			elsif (count_h_size = 2 and sel_cd = "01") then
+				sched_tick <= '1';
 			else
 				sched_tick <= '0';
 			end if;
@@ -555,11 +599,11 @@ begin
 	begin
 		if (clk'event and clk = '1') then
 			if (rstn = '0') then
-				state_c          <= st0_idle;
+				state_c        <= st0_idle;
 				count_tick_i   <= "00" & internal_tick(31 downto 2);
 				chunk_temp_cnt <= (others => '0');
 			else
-				state_c          <= next_state_c;
+				state_c        <= next_state_c;
 				count_tick_i   <= count_tick_next;
 				chunk_temp_cnt <= chunk_temp_cnt_next;
 			-- assign other outputs to internal signals
@@ -576,7 +620,7 @@ begin
 	MAIN_FSM_LOGIC_PROC : process(state_c, sel_cd, count_tick_i, sched_tready_c, sched_tvalid, chunk_temp_cnt)
 	begin
 		--declare default state for next_state_c to avoid latches
-		next_state_c          <= state_c;   --default is to stay in current state
+		next_state_c        <= state_c; --default is to stay in current state
 		count_tick_next     <= count_tick_i;
 		ff_header           <= '0';
 		chunk_temp_cnt_next <= chunk_temp_cnt;
@@ -590,17 +634,17 @@ begin
 				end if;
 
 			when st2_header_filesize =>
-				ff_header  <= '1';
+				ff_header    <= '1';
 				next_state_c <= st2_header_blocksize;
 
 			when st2_header_blocksize =>
-				ff_header  <= '1';
+				ff_header    <= '1';
 				next_state_c <= st2_header_totalchunk;
 
 			when st2_header_totalchunk =>
 				ff_header           <= '1';
 				chunk_temp_cnt_next <= chunk_i;
-				next_state_c          <= st2_header_compsize_crc;
+				next_state_c        <= st2_header_compsize_crc;
 
 			when st2_header_compsize_crc =>
 				ff_header <= '1';
@@ -640,7 +684,10 @@ begin
 	-- Purpose:	Synchronous FSM controller for decompression
 	-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-	DECOMP_FSM_STATE_PROC : process(clk, next_state_d, s_axis_tvalid_d_next, s_axis_tdata_d_next, s_sched_tdest_d_next, sched_tready_d_next, count_chunk_next)
+	DECOMP_FSM_STATE_PROC : process(clk, next_state_d, s_axis_tvalid_d_next, 
+		s_axis_tdata_d_next, s_sched_tdest_d_next, sched_tready_d_next, 
+		count_chunk_next
+	)
 	begin
 		if (clk'event and clk = '1') then
 			if (rstn = '0') then
@@ -667,16 +714,21 @@ begin
 	--			state transitions for decompression
 	-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-	DECOMP_FSM_LOGIC_PROC : process(state_d, sel_cd, sched_tvalid, count_chunk, s_axis_tdata_reg, s_axis_tvalid_reg, sup_dest)
+	DECOMP_FSM_LOGIC_PROC : process(state_d, state_count, sel_cd, sched_tvalid, 
+		count_chunk, s_axis_tdata_reg, s_axis_tvalid_reg, sup_dest, 
+		m_axis_fork_tready, nxt_rdy_eng_bit_tvalid, check_nxt_eng_bit, 
+		count_h_size, wait_nxt_rdy_eng_bit, status_engine_3, check_eng_full_bit
+	)
 	begin
 		--declare default state for next_state to avoid latches
-		next_state_d         <= state_d; --default is to stay in current state
-		s_axis_tvalid_d_next <= '0';
-		s_axis_tdata_d_next  <= x"00000000";
-		s_sched_tdest_d_next <= x"0";
-		sched_tready_d_next  <= '0';
-		count_chunk_next     <= (others => '0');
-		s_axis_tvalid_h      <= '0';
+		next_state_d          <= state_d; --default is to stay in current state
+		s_axis_tvalid_d_next  <= '0';
+		s_axis_tdata_d_next   <= s_axis_tdata_reg;
+		s_sched_tdest_d_next  <= x"0";
+		sched_tready_d_next   <= '0';
+		count_chunk_next      <= (others => '0');
+		s_axis_tvalid_h       <= '0';
+		s_axis_tvalid_d_split <= '0';
 
 		case (state_d) is
 			when st_d_idle =>
@@ -687,43 +739,161 @@ begin
 
 			when st_d_0 =>              -- read 1 clock cycle
 				sched_tready_d_next <= '1';
+				s_axis_tready_d     <= '1';
 				next_state_d        <= st_d_1;
 
 			when st_d_1 =>              -- read filesize
 				sched_tready_d_next <= '1';
+				s_axis_tready_d     <= '1';
 				next_state_d        <= st_d_2;
 
 			when st_d_2 =>              -- read blocksize
 				sched_tready_d_next <= '1';
+				s_axis_tready_d     <= '1';
 				next_state_d        <= st_d_3;
 
 			when st_d_3 =>              -- read total chunks
 				sched_tready_d_next <= '1';
+				s_axis_tready_d     <= '1';
 				count_chunk_next    <= s_axis_tdata_reg(14 downto 0) & '0'; -- multiply by 2 (including CRC)
 				next_state_d        <= st_d_4;
 
 			when st_d_4 =>
 				sched_tready_d_next <= '1';
+				s_axis_tready_d     <= '1';
 				s_axis_tvalid_h     <= '1';
 				count_chunk_next    <= count_chunk - 1;
 				next_state_d        <= st_d_4_CRC;
 
 			when st_d_4_CRC =>
 				sched_tready_d_next <= '1';
+				s_axis_tready_d     <= '1';
 				s_axis_tvalid_h     <= '1';
 				count_chunk_next    <= count_chunk - 1;
 				if (count_chunk = 1) then
-					next_state_d <= st_d_5;
+					s_sched_tdest_d_next <= sup_dest;
+					next_state_d         <= st_d_5;
 				else
 					next_state_d <= st_d_4;
 				end if;
 
-			when st_d_5 =>
-				sched_tready_d_next  <= '1';
-				s_axis_tdata_d_next  <= s_axis_tdata_reg;
-				s_axis_tvalid_d_next <= s_axis_tvalid_reg;
-				--s_sched_tdest_d_next <= s_sched_tdest;
+			when st_d_4_wait =>
 				s_sched_tdest_d_next <= sup_dest;
+				s_axis_tvalid_d_next <= '1';
+				sched_tready_d_next  <= '1';
+				s_axis_tready_d      <= '1';
+				next_state_d         <= st_d_5;
+
+			when st_d_wait_1 =>
+				if (count_h_size < 5) then
+					sched_tready_d_next <= '0';
+				else
+					sched_tready_d_next <= '1';
+				end if;
+				if (count_h_size < 3) then
+					s_axis_tready_d <= '0';
+				else
+					s_axis_tready_d <= '1';
+				end if;
+				s_sched_tdest_d_next  <= sup_dest;
+				s_axis_tvalid_d_next  <= '1';
+				s_axis_tvalid_d_split <= '1';
+				next_state_d          <= st_d_wait_2;
+
+			when st_d_wait_2 =>
+				if (count_h_size < 5) then
+					sched_tready_d_next <= '0';
+				else
+					sched_tready_d_next <= '1';
+				end if;
+				if (count_h_size < 3) then
+					s_axis_tready_d <= '0';
+				else
+					s_axis_tready_d <= '1';
+				end if;
+				s_sched_tdest_d_next  <= sup_dest;
+				s_axis_tvalid_d_next  <= '1';
+				s_axis_tvalid_d_split <= '1';
+				next_state_d          <= st_d_wait_3;
+
+			when st_d_wait_3 =>
+				s_sched_tdest_d_next <= sup_dest;
+				if (wait_nxt_rdy_eng_bit = '1' and (state_count = st_count_wait or state_count = st_count_4) and (check_eng_full_bit = '0')) then
+					s_axis_tready_d <= '1';
+				elsif (wait_nxt_rdy_eng_bit = '1' and state_count /= st_count_wait and check_eng_full_bit = '0') then
+					s_axis_tvalid_d_next <= '1';
+					sched_tready_d_next  <= '1';
+					s_axis_tready_d      <= '1';
+					next_state_d         <= st_d_wait_3_ready;
+				elsif (wait_nxt_rdy_eng_bit = '1' and state_count /= st_count_wait and check_eng_full_bit = '1') then
+					s_axis_tvalid_d_next <= '1';
+					sched_tready_d_next  <= '1';
+					next_state_d         <= st_d_wait_3_10_wait_1;
+				else
+					s_axis_tready_d <= '0';
+				end if;
+				if ((state_count = st_count_2) or (state_count = st_count_4)) and (check_eng_full_bit = '0') then
+					s_axis_tvalid_d_split <= '1';
+				else
+					s_axis_tvalid_d_split <= '0';
+				end if;
+
+			when st_d_wait_3_ready =>
+				s_sched_tdest_d_next  <= sup_dest;
+				s_axis_tvalid_d_split <= '1';
+				if (wait_nxt_rdy_eng_bit = '1' and (state_count = st_count_wait or state_count = st_count_4) and (check_eng_full_bit = '0')) then
+					s_axis_tready_d <= '1';
+				elsif (wait_nxt_rdy_eng_bit = '1' and state_count /= st_count_wait and check_eng_full_bit = '0') then
+					s_axis_tvalid_d_next <= '1';
+					sched_tready_d_next  <= '1';
+					s_axis_tready_d      <= '1';
+					next_state_d         <= st_d_5;
+				else
+					s_axis_tready_d <= '0';
+				end if;
+
+			when st_d_wait_3_ready_10_is_1 =>
+				s_sched_tdest_d_next <= sup_dest;
+				if (wait_nxt_rdy_eng_bit = '1' and (state_count = st_count_wait or state_count = st_count_4) and (check_eng_full_bit = '0')) then
+					s_axis_tready_d <= '1';
+				elsif (wait_nxt_rdy_eng_bit = '1' and state_count /= st_count_wait and check_eng_full_bit = '0') then
+					s_axis_tvalid_d_next <= '1';
+					sched_tready_d_next  <= '1';
+					s_axis_tready_d      <= '1';
+					next_state_d         <= st_d_5;
+				else
+					s_axis_tready_d <= '0';
+				end if;
+
+			when st_d_5 =>
+				if (m_axis_fork_tready(0) = '1') then
+					s_axis_tvalid_d_next  <= '1';
+					s_axis_tvalid_d_split <= '1';
+					s_axis_tready_d       <= '1';
+				else
+					s_axis_tvalid_d_next  <= '0';
+					s_axis_tvalid_d_split <= '0';
+					s_axis_tready_d       <= '0';
+				end if;
+				if (check_nxt_eng_bit = '0' and (count_h_size < 5)) then
+					sched_tready_d_next <= '1';
+					next_state_d        <= st_d_wait_1;
+				else
+					sched_tready_d_next <= '1';
+				end if;
+				s_sched_tdest_d_next <= sup_dest;
+
+			when st_d_wait_3_10_wait_1 =>
+				next_state_d <= st_d_wait_3_10_wait_2;
+
+			when st_d_wait_3_10_wait_2 =>
+				next_state_d <= st_d_wait_3_10_wait_3;
+
+			when st_d_wait_3_10_wait_3 =>
+				next_state_d <= st_d_wait_3_10_wait_4;
+
+			when st_d_wait_3_10_wait_4 =>
+				next_state_d <= st_d_wait_3_ready_10_is_1;
 
 			when others =>
 				next_state_d <= st_d_idle;
@@ -742,7 +912,7 @@ begin
 			if (rstn = '0') then
 				state_count  <= st_count_idle;
 				count_h_size <= (others => '0');
-				sup_dest     <= "0001";
+				sup_dest     <= "0000";
 			else
 				state_count  <= next_state_count;
 				count_h_size <= count_h_size_next;
@@ -757,7 +927,11 @@ begin
 	--			state transitions for header unpacker
 	-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-	H_UNPACKER_FSM_LOGIC_PROC : process(state_count, s_axis_header_tvalid, sup_dest, count_h_size, s_axis_tvalid_d, m_axis_fork_tready, s_axis_header_tdata_reg)
+	H_UNPACKER_FSM_LOGIC_PROC : process(state_count, s_axis_header_tvalid, 
+		sup_dest, count_h_size, s_axis_tvalid_d, m_axis_fork_tready, 
+		s_axis_header_tdata_reg, nxt_rdy_eng_bit, status_engine_3, 
+		check_eng_full_bit
+	)
 	begin
 		--declare default state for next_state to avoid latches
 		next_state_count  <= state_count; --default is to stay in current state
@@ -775,6 +949,7 @@ begin
 			when st_count_1 =>
 				count_h_size_next <= s_axis_header_tdata_reg(15 downto 0);
 				header_ready      <= '1';
+				sup_dest_next     <= "0001";
 				next_state_count  <= st_count_2;
 
 			when st_count_2 =>
@@ -782,10 +957,10 @@ begin
 					count_h_size_next <= count_h_size - 1;
 				end if;
 				if (count_h_size = 2) then
-			        sup_dest_next(0) <= sched_tick_in;
-                    sup_dest_next(1) <= sup_dest(0);
-                    sup_dest_next(2) <= sup_dest(1);
-                    sup_dest_next(3) <= sup_dest(2);
+					sup_dest_next(0)  <= sched_tick_in;
+					sup_dest_next(1)  <= sup_dest(0);
+					sup_dest_next(2)  <= sup_dest(1);
+					sup_dest_next(3)  <= sup_dest(2);
 					count_h_size_next <= count_h_size - 1;
 					header_ready      <= '1';
 					next_state_count  <= st_count_3;
@@ -794,11 +969,32 @@ begin
 			when st_count_3 =>
 				count_h_size_next <= s_axis_header_tdata_reg(15 downto 0);
 				header_ready      <= '1';
-				next_state_count  <= st_count_4;
+				next_state_count  <= st_count_wait;
+
+			when st_count_wait =>
+				if (nxt_rdy_eng_bit = '1') and (check_eng_full_bit = '0') then
+					count_h_size_next <= count_h_size - 1;
+					next_state_count  <= st_count_4;
+				elsif (nxt_rdy_eng_bit = '1') and (check_eng_full_bit = '1') then
+					count_h_size_next <= count_h_size + 1;
+					next_state_count  <= st_count_4;
+				end if;
 
 			when st_count_4 =>
-				count_h_size_next <= count_h_size - 1;
-				next_state_count  <= st_count_2;
+				if (check_eng_full_bit = '1') then
+					next_state_count <= st_count_4_wait;
+				else
+					count_h_size_next <= count_h_size - 1;
+					next_state_count  <= st_count_2;
+				end if;
+
+			when st_count_4_wait =>
+				if (check_eng_full_bit = '0') then
+					next_state_count <= st_count_4_wait_ready;
+				end if;
+
+			when st_count_4_wait_ready =>
+				next_state_count <= st_count_2;
 
 			when others =>
 				next_state_count <= st_count_idle;
@@ -830,7 +1026,10 @@ begin
 	--			state transitions for join
 	-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-	JOIN_FSM_LOGIC_PROC : process(state_suppress, state_d, command_in, sel_cd, chunk_i, filesize_count_finish, status_engine_0, status_engine_1, status_engine_2, status_engine_3)
+	JOIN_FSM_LOGIC_PROC : process(state_suppress, state_d, command_in, sel_cd, 
+		chunk_i, filesize_count_finish, status_engine_0, status_engine_1, 
+		status_engine_2, status_engine_3
+	)
 	begin
 		--declare default state for next_state to avoid latches
 		next_state_suppress <= state_suppress; --default is to stay in current state
@@ -859,111 +1058,115 @@ begin
 
 			when st_s_0001 =>
 				join_suppress <= "11110";
-				if (status_engine_0(8) = '0') then -- intr req
-					if (chunk_i = 1) then
-						next_state_suppress <= idle;
-					else
-						chunk_i_next        <= chunk_i - 1;
-						next_state_suppress <= st_s_0001_ack;
-					end if;
+				if (chunk_i = 0) then
+					next_state_suppress <= idle;
+				elsif (status_engine_0(8) = '0') then -- intr req
+					chunk_i_next        <= chunk_i - 1;
+					next_state_suppress <= st_s_0001_ack;
 				end if;
 
 			when st_s_0001_ack =>
-				join_suppress <= "11110";
-				command_engine_0    <= x"10000000";
+				join_suppress       <= "11110";
 				next_state_suppress <= st_s_0001_ack1;
-				
+
 			when st_s_0001_ack1 =>
-                join_suppress <= "11110";
+				join_suppress <= "11110";
 				if (status_engine_0(11) = '0') then -- fifo has finished
-				    next_state_suppress <= st_s_0001_rst;
-                end if;
-				
+					next_state_suppress <= st_s_0001_rst;
+				end if;
+
 			when st_s_0001_rst =>
-			    join_suppress <= "11110";
-				command_engine_0    <= x"80000000";
-				next_state_suppress <= st_s_0010;
+				join_suppress    <= "11110";
+				command_engine_0 <= x"80000000";
+				if (chunk_i = 0) then
+					next_state_suppress <= idle;
+				else
+					next_state_suppress <= st_s_0010;
+				end if;
 
 			when st_s_0010 =>
 				join_suppress <= "11101";
-				if (status_engine_1(8) = '0') then -- intr req
-					if (chunk_i = 1) then
-						next_state_suppress <= idle;
-					else
-						chunk_i_next        <= chunk_i - 1;
-						next_state_suppress <= st_s_0010_ack;
-					end if;
+				if (chunk_i = 0) then
+					next_state_suppress <= idle;
+				elsif (status_engine_1(8) = '0') then -- intr req
+					chunk_i_next        <= chunk_i - 1;
+					next_state_suppress <= st_s_0010_ack;
 				end if;
 
 			when st_s_0010_ack =>
-				join_suppress <= "11101";
-				command_engine_1    <= x"10000000";
+				join_suppress       <= "11101";
 				next_state_suppress <= st_s_0010_ack1;
-				
+
 			when st_s_0010_ack1 =>
-                join_suppress <= "11101";
+				join_suppress <= "11101";
 				if (status_engine_1(11) = '0') then -- fifo has finished
-				    next_state_suppress <= st_s_0010_rst;
-                end if;
+					next_state_suppress <= st_s_0010_rst;
+				end if;
 
 			when st_s_0010_rst =>
-			    join_suppress <= "11101";
-				command_engine_1    <= x"80000000";
-				next_state_suppress <= st_s_0100;
+				join_suppress    <= "11101";
+				command_engine_1 <= x"80000000";
+				if (chunk_i = 0) then
+					next_state_suppress <= idle;
+				else
+					next_state_suppress <= st_s_0100;
+				end if;
 
 			when st_s_0100 =>
 				join_suppress <= "11011";
-				if (status_engine_2(8) = '0') then -- intr req
-					if (chunk_i = 1) then
-						next_state_suppress <= idle;
-					else
-						chunk_i_next        <= chunk_i - 1;
-						next_state_suppress <= st_s_0100_ack;
-					end if;
+				if (chunk_i = 0) then
+					next_state_suppress <= idle;
+				elsif (status_engine_2(8) = '0') then -- intr req
+					chunk_i_next        <= chunk_i - 1;
+					next_state_suppress <= st_s_0100_ack;
 				end if;
 
 			when st_s_0100_ack =>
-				join_suppress <= "11011";
-				command_engine_2    <= x"10000000";
+				join_suppress       <= "11011";
 				next_state_suppress <= st_s_0100_ack1;
-				
+
 			when st_s_0100_ack1 =>
-                join_suppress <= "11011";
+				join_suppress <= "11011";
 				if (status_engine_2(11) = '0') then -- fifo has finished
-				    next_state_suppress <= st_s_0100_rst;
-                end if;
+					next_state_suppress <= st_s_0100_rst;
+				end if;
 
 			when st_s_0100_rst =>
-			    join_suppress <= "11011";
-				command_engine_2    <= x"80000000";
-				next_state_suppress <= st_s_1000;
+				join_suppress    <= "11011";
+				command_engine_2 <= x"80000000";
+				if (chunk_i = 0) then
+					next_state_suppress <= idle;
+				else
+					next_state_suppress <= st_s_1000;
+				end if;
 
 			when st_s_1000 =>
 				join_suppress <= "10111";
-				if (status_engine_3(8) = '0') then -- intr req
-					if (chunk_i = 1) then
-						next_state_suppress <= idle;
-					else
-						chunk_i_next        <= chunk_i - 1;
-						next_state_suppress <= st_s_1000_ack;
-					end if;
+				if (chunk_i = 0) then
+					next_state_suppress <= idle;
+				elsif (status_engine_3(8) = '0') then -- intr req
+					chunk_i_next        <= chunk_i - 1;
+					next_state_suppress <= st_s_1000_ack;
 				end if;
 
 			when st_s_1000_ack =>
-				join_suppress <= "10111";
-				command_engine_3    <= x"10000000";
+				join_suppress       <= "10111";
 				next_state_suppress <= st_s_1000_ack1;
-				
+
 			when st_s_1000_ack1 =>
-                join_suppress <= "10111";
+				join_suppress <= "10111";
 				if (status_engine_3(11) = '0') then -- fifo has finished
-				    next_state_suppress <= st_s_1000_rst;
-                end if;
+					next_state_suppress <= st_s_1000_rst;
+				end if;
 
 			when st_s_1000_rst =>
-			    join_suppress <= "10111";
-				command_engine_3    <= x"80000000";
-				next_state_suppress <= st_s_0001;
+				join_suppress    <= "10111";
+				command_engine_3 <= x"80000000";
+				if (chunk_i = 0) then
+					next_state_suppress <= idle;
+				else
+					next_state_suppress <= st_s_0001;
+				end if;
 
 			when idle =>
 				if (filesize_count_finish = '1') then
@@ -972,10 +1175,10 @@ begin
 					command_engine_2 <= x"80000000";
 					command_engine_3 <= x"80000000";
 					join_suppress    <= "01111";
-					intr_done <= '1';
+					intr_done        <= '1';
 				else
 					join_suppress <= "11111";
-					intr_done <= '0';
+					intr_done     <= '0';
 				end if;
 
 			when others =>
@@ -994,7 +1197,10 @@ begin
 	compressed_size_engine_2 <= c_size_engine_2;
 	compressed_size_engine_3 <= c_size_engine_3;
 
-	CSIZE_FSM_STATE_PROC : process(clk, next_state_comp_size, c_size_engine_0_next, c_size_engine_1_next, c_size_engine_2_next, c_size_engine_3_next)
+	CSIZE_FSM_STATE_PROC : process(clk, next_state_comp_size, 
+		c_size_engine_0_next, c_size_engine_1_next, c_size_engine_2_next, 
+		c_size_engine_3_next
+	)
 	begin
 		if (clk'event and clk = '1') then
 			if (rstn = '0') then
@@ -1019,7 +1225,9 @@ begin
 	--			state transitions for outputting compressed size
 	-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-	CSIZE_FSM_LOGIC_PROC : process(state_comp_size, sel_cd, header_ready, s_axis_header_tdata_reg)
+	CSIZE_FSM_LOGIC_PROC : process(state_comp_size, sel_cd, header_ready, 
+		s_axis_header_tdata_reg
+	)
 	begin
 		--declare default state for next_state to avoid latches
 		next_state_comp_size <= state_comp_size; --default is to stay in current state
