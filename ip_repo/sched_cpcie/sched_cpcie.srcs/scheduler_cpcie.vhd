@@ -78,7 +78,8 @@ entity scheduler_cpcie is
 		compressed_size_engine_1 : out std_logic_vector(15 downto 0);
 		compressed_size_engine_2 : out std_logic_vector(15 downto 0);
 		compressed_size_engine_3 : out std_logic_vector(15 downto 0);
-		status                   : out std_logic_vector(31 downto 0)
+		status                   : out std_logic_vector(31 downto 0);
+		compressed_size          : out std_logic_vector(31 downto 0)
 	);
 end scheduler_cpcie;
 
@@ -265,7 +266,6 @@ architecture arch_imp of scheduler_cpcie is
 	signal status_engine_all      : std_logic_vector(3 downto 0);
 	signal next_ready_engine      : std_logic_vector(3 downto 0);
 	signal nxt_rdy_eng_bit        : std_logic;
-	signal nxt_rdy_eng_bit_tvalid : std_logic;
 
 	signal wait_next_ready_engine : std_logic_vector(3 downto 0);
 	signal wait_nxt_rdy_eng_bit   : std_logic;
@@ -278,6 +278,8 @@ architecture arch_imp of scheduler_cpcie is
 	signal status_engine_full : std_logic_vector(3 downto 0);
 	signal check_engine_full  : std_logic_vector(3 downto 0);
 	signal check_eng_full_bit : std_logic;
+	
+	signal count_compressed_size : std_logic_vector(31 downto 0);
 
 begin
 
@@ -327,7 +329,6 @@ begin
 
 	next_ready_engine      <= sup_dest and status_engine_all;
 	nxt_rdy_eng_bit        <= next_ready_engine(3) or next_ready_engine(2) or next_ready_engine(1) or next_ready_engine(0);
-	nxt_rdy_eng_bit_tvalid <= s_axis_tvalid_d_next;
 
 	check_next_engine(0) <= next_ready_engine(3);
 	check_next_engine(1) <= next_ready_engine(0);
@@ -742,8 +743,8 @@ begin
 
 	DECOMP_FSM_LOGIC_PROC : process(state_d, state_count, sel_cd, sched_tvalid, 
 		count_chunk, s_axis_tdata_reg, s_axis_tvalid_reg, sup_dest, 
-		m_axis_fork_tready, nxt_rdy_eng_bit_tvalid, check_nxt_eng_bit, 
-		count_h_size, wait_nxt_rdy_eng_bit, status_engine_3, check_eng_full_bit
+		m_axis_fork_tready, check_nxt_eng_bit, 
+		count_h_size, wait_nxt_rdy_eng_bit, check_eng_full_bit
 	)
 	begin
 		--declare default state for next_state to avoid latches
@@ -844,9 +845,7 @@ begin
 
 			when st_d_wait_3 =>
 				s_sched_tdest_d_next <= sup_dest;
-				if (wait_nxt_rdy_eng_bit = '1' and (state_count = st_count_wait or state_count = st_count_4) and (check_eng_full_bit = '0')) then
-					s_axis_tready_d <= '1';
-				elsif (wait_nxt_rdy_eng_bit = '1' and state_count /= st_count_wait and check_eng_full_bit = '0') then
+				if (wait_nxt_rdy_eng_bit = '1' and state_count = st_count_2 and check_eng_full_bit = '0') then
 					s_axis_tvalid_d_next <= '1';
 					sched_tready_d_next  <= '1';
 					s_axis_tready_d      <= '1';
@@ -955,8 +954,7 @@ begin
 
 	H_UNPACKER_FSM_LOGIC_PROC : process(state_count, s_axis_header_tvalid, 
 		sup_dest, count_h_size, s_axis_tvalid_d, m_axis_fork_tready, 
-		s_axis_header_tdata_reg, nxt_rdy_eng_bit, status_engine_3, 
-		check_eng_full_bit
+		s_axis_header_tdata_reg, nxt_rdy_eng_bit, check_eng_full_bit
 	)
 	begin
 		--declare default state for next_state to avoid latches
@@ -1309,5 +1307,24 @@ begin
 
 		end case;
 	end process;
+	
+    process (clk, command_in) 
+      begin 
+        if (command_in(31) = '1') then 
+          count_compressed_size <= (others => '0');
+        elsif (clk'event and clk = '1') then
+             if (state_suppress = st_s_0001_ack1) then
+              count_compressed_size <= count_compressed_size + status_engine_0(31 downto 16);
+          elsif (state_suppress = st_s_0010_ack1) then
+              count_compressed_size <= count_compressed_size + status_engine_1(31 downto 16);
+          elsif (state_suppress = st_s_0100_ack1) then
+              count_compressed_size <= count_compressed_size + status_engine_2(31 downto 16);
+          elsif (state_suppress = st_s_1000_ack1) then
+              count_compressed_size <= count_compressed_size + status_engine_3(31 downto 16);   
+           end if;         
+        end if; 
+    end process;
 
+    compressed_size <= count_compressed_size;
+    
 end arch_imp;
