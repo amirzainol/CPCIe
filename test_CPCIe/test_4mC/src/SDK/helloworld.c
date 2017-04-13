@@ -63,7 +63,7 @@ int init_dma();
 void clear_data();
 
 XAxiDma AxiDma;
-u32 file_size = 9216; // in ??
+u32 file_size = 9216; // in 9 KB
 
 int main()
 {
@@ -79,18 +79,12 @@ int main()
 	TxBufferPtr = (u32 *)TX_BUFFER_BASE;
 	RxBufferPtr = (u32 *)RX_BUFFER_BASE;
 
-    xil_printf("Hello World\r\n");
+    	xil_printf("Hello World\r\n");
 
 	Status = init_dma();
 	if(Status != XST_SUCCESS){
 		return XST_FAILURE;
 	}
-
-	clear_data();
-	Xil_DCacheFlushRange((u32)RxBufferPtr, (u32) file_size);
-
-	dataset_FFFFFFFF();
-	Xil_DCacheFlushRange((u32)TxBufferPtr, (u32) file_size);
 
 	Xil_Out32(0x44A00004, (u32) 0x80000000); // write command (reset all) to mCompressor
 	Xil_Out32(0x44A00004, (u32) 0x00000000); // write command (null) to mCompressor
@@ -101,6 +95,12 @@ int main()
 	//Xil_Out32(0x44A00004, (u32) 0x41000804); // write command (compress with blocksize 2 KB) to mCompressor
 	//Xil_Out32(0x44A00004, (u32) 0x41000808); // write command (compress with blocksize 4 KB) to mCompressor
 
+	clear_data();
+	Xil_DCacheFlushRange((u32)RxBufferPtr, (u32) file_size);
+
+	dataset_FFFFFFFF();
+	Xil_DCacheFlushRange((u32)TxBufferPtr, (u32) file_size);
+
 	Status = XAxiDma_SimpleTransfer(&AxiDma,(u32) TxBufferPtr,
 			(u32) file_size, XAXIDMA_DMA_TO_DEVICE);
 
@@ -108,12 +108,15 @@ int main()
 		return XST_FAILURE;
 	}
 
-	stat_done = Xil_In8(0x44A0000C);
+	xil_printf("\r\ncompressed size %d\r\n", Xil_In32(0x44A0000C));
+
+	stat_done = Xil_In8(0x44A00000);
 	while(!stat_done) {
-		stat_done = Xil_In8(0x44A0000C);
+		stat_done = Xil_In8(0x44A00000);
+		for (i=0; i<10000; i++);
 	}
 
-	xil_printf("\r\nstatus %08X\r\n", Xil_In32(0x44A0000C));
+	xil_printf("\r\ncompressed size %d\r\n", Xil_In32(0x44A0000C));
 
 	Status = XAxiDma_SimpleTransfer(&AxiDma,(u32) RxBufferPtr,
 			(u32) 72, XAXIDMA_DEVICE_TO_DMA);
@@ -130,12 +133,6 @@ int main()
 	xil_printf("\r\n");
 
 	cleanup_platform();
-
-	return 0;
-
-    xil_printf("%08X\r\n", Xil_In32(0x44A00000));
-    Xil_Out32(0x44A00000, 0xDEADBEEF);
-    xil_printf("%08X\r\n", Xil_In32(0x44A00000));
 
     return 0;
 }
