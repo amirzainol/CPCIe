@@ -1,0 +1,2 @@
+02:23:31 INFO  : Processing command line option -hwspec C:/mohd/cpcie/test_xillybus_mb_dpram/cpcie.sdk/cpcie_top.hdf.
+02:23:37 INFO  : Launching XSDB server: xsdb.bat -s C:/Xilinx/SDK/2014.4/scripts/xsdb/xsdb/xsdb-server.tcl 2450
