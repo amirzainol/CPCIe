@@ -1,29 +1,3 @@
--- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
---This library is free software; you can redistribute it and/or
---modify it under the terms of the GNU Lesser General Public
---License as published by the Free Software Foundation; either
---version 2.1 of the License, or (at your option) any later version.
---
---This library is distributed in the hope that it will be useful,
---but WITHOUT ANY WARRANTY; without even the implied warranty of
---MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
---Lesser General Public License for more details.
---
---You should have received a copy of the GNU Lesser General Public
---License along with this library; if not, write to the Free Software
---Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
---
--- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
---
--- Author: 			Mohd Amiruddin Zainol (mohd.a.zainol@gmail.com)
--- Entity: 			scheduler_cpcie.vhd
--- Version:			1.0
--- Description: 		Hardware Scheduler for CPCIe
---
--- Additional Comments:
---
--- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_arith.all;
@@ -180,6 +154,11 @@ architecture arch_imp of scheduler_cpcie is
 		                         st_s_1000_ack,
 		                         st_s_1000_ack1,
 		                         st_s_1000_rst,
+		                         almost_finish,
+		                         wait_eng_0,
+		                         wait_eng_1,
+		                         wait_eng_2,
+		                         wait_eng_3,
 		                         idle
 	);
 	signal state_suppress, next_state_suppress : state_type_suppress;
@@ -280,6 +259,8 @@ architecture arch_imp of scheduler_cpcie is
 	signal check_eng_full_bit : std_logic;
 	
 	signal count_compressed_size : std_logic_vector(31 downto 0);
+	
+	signal s_axis_tdata_endian : std_logic_vector(31 downto 0);
 
 begin
 
@@ -314,9 +295,11 @@ begin
 	s_axis_tready        <= sched_tready_c when sel_cd = "10" else s_axis_tready_d when sel_cd = "01" else '0';
 	sched_tvalid         <= s_axis_tvalid;
 
+    s_axis_tdata_endian   <= s_axis_tdata(7 downto 0) & s_axis_tdata(15 downto 8) & s_axis_tdata(23 downto 16) & s_axis_tdata(31 downto 24);
 	sched_tready_c        <= m_axis_fork_tready(0) and fork_dest_logic_or;
 	m_axis_fork_tvalid(0) <= s_axis_tvalid when sel_cd = "10" else s_axis_tvalid_d_split when sel_cd = "01" else '0';
-	m_axis_fork_tdata     <= s_axis_tdata when sel_cd = "10" else s_axis_tdata_d_split when sel_cd = "01" else x"00000000";
+	m_axis_fork_tdata     <= s_axis_tdata_endian when sel_cd = "10" else s_axis_tdata_d_split when sel_cd = "01" else x"00000000";
+	--m_axis_fork_tdata     <= s_axis_tdata when sel_cd = "10" else s_axis_tdata_d_split when sel_cd = "01" else x"00000000";
 	m_axis_fork_tdest     <= s_sched_tdest when sel_cd = "10" else sup_dest when sel_cd = "01" else x"0";
 
 	s_axis_tdata_d_split <= s_axis_tdata_reg;
@@ -420,7 +403,7 @@ begin
 	-- Purpose:	Count filesize
 	-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-	filesize_count_finish <= '1' when filesize_count < 9 else '0';
+	filesize_count_finish <= '1' when filesize_count < 1 else '0';
 
 	process(clk)
 	begin
@@ -430,8 +413,8 @@ begin
 			else
 				if (state_c = st0_idle) then
 					filesize_count <= filesize_u;
-				elsif (m_axis_fork_tready(0) = '1' and s_axis_tvalid = '1') then
-					filesize_count <= filesize_count - 4;
+				elsif (m_axis_fork_tready(0) = '1' and s_axis_tvalid = '1' and filesize_count > 0) then
+					filesize_count <= filesize_count - 1;
 				else
 					filesize_count <= filesize_count;
 				end if;
@@ -536,21 +519,21 @@ begin
 			elsif command_in(24) = '1' then -- if start engine
 				case (command_in(7 downto 0)) is -- blocksize from command
 					when "00000001" => internal_tick <= x"00000200"; --   512
-						chunk_to_comp                <= "00000000000" & filesize_u(31 downto 11);
-					when "00000010" => internal_tick <= x"00000400"; --  1024
-						chunk_to_comp                <= "0000000000" & filesize_u(31 downto 10);
-					when "00000100" => internal_tick <= x"00000800"; --  2048
 						chunk_to_comp                <= "000000000" & filesize_u(31 downto 9);
-					when "00001000" => internal_tick <= x"00001000"; --  4096
+					when "00000010" => internal_tick <= x"00000400"; --  1024
 						chunk_to_comp                <= "00000000" & filesize_u(31 downto 8);
-					when "00010000" => internal_tick <= x"00002000"; --  8192
+					when "00000100" => internal_tick <= x"00000800"; --  2048
 						chunk_to_comp                <= "0000000" & filesize_u(31 downto 7);
-					when "00100000" => internal_tick <= x"00004000"; -- 16384
+					when "00001000" => internal_tick <= x"00001000"; --  4096
 						chunk_to_comp                <= "000000" & filesize_u(31 downto 6);
-					when "01000000" => internal_tick <= x"00008000"; -- 32768
+					when "00010000" => internal_tick <= x"00002000"; --  8192
 						chunk_to_comp                <= "00000" & filesize_u(31 downto 5);
-					when "10000000" => internal_tick <= x"00010000"; -- 65536
+					when "00100000" => internal_tick <= x"00004000"; -- 16384
 						chunk_to_comp                <= "0000" & filesize_u(31 downto 4);
+					when "01000000" => internal_tick <= x"00008000"; -- 32768
+						chunk_to_comp                <= "000" & filesize_u(31 downto 3);
+					when "10000000" => internal_tick <= x"00010000"; -- 65536
+						chunk_to_comp                <= "00" & filesize_u(31 downto 2);
 					when others => internal_tick     <= x"00000400"; -- by default it is 1 KB of blocksize
 						chunk_to_comp                <= filesize_u(31 downto 0);
 				end case;
@@ -1090,6 +1073,9 @@ begin
 				end if;
 
 			when st_s_0001_ack =>
+			     if (filesize_count_finish = '1') then
+                command_engine_1 <= x"80000000";
+            end if;
 				join_suppress       <= "11110";
 				next_state_suppress <= st_s_0001_ack1;
 
@@ -1101,7 +1087,7 @@ begin
 
 			when st_s_0001_rst =>
 				join_suppress    <= "11110";
-				command_engine_0 <= x"80000000";
+				--command_engine_0 <= x"80000000";
 				if (chunk_i = 0) then
 					next_state_suppress <= idle;
 				else
@@ -1118,6 +1104,9 @@ begin
 				end if;
 
 			when st_s_0010_ack =>
+			     if (filesize_count_finish = '1') then
+                command_engine_2 <= x"80000000";
+            end if;
 				join_suppress       <= "11101";
 				next_state_suppress <= st_s_0010_ack1;
 
@@ -1129,7 +1118,7 @@ begin
 
 			when st_s_0010_rst =>
 				join_suppress    <= "11101";
-				command_engine_1 <= x"80000000";
+				--command_engine_1 <= x"80000000";
 				if (chunk_i = 0) then
 					next_state_suppress <= idle;
 				else
@@ -1146,6 +1135,9 @@ begin
 				end if;
 
 			when st_s_0100_ack =>
+			     if (filesize_count_finish = '1') then
+                command_engine_3 <= x"80000000";
+            end if;
 				join_suppress       <= "11011";
 				next_state_suppress <= st_s_0100_ack1;
 
@@ -1157,7 +1149,7 @@ begin
 
 			when st_s_0100_rst =>
 				join_suppress    <= "11011";
-				command_engine_2 <= x"80000000";
+				--command_engine_2 <= x"80000000";
 				if (chunk_i = 0) then
 					next_state_suppress <= idle;
 				else
@@ -1174,6 +1166,9 @@ begin
 				end if;
 
 			when st_s_1000_ack =>
+			     if (filesize_count_finish = '1') then
+			         command_engine_0 <= x"80000000";
+			     end if;
 				join_suppress       <= "10111";
 				next_state_suppress <= st_s_1000_ack1;
 
@@ -1185,25 +1180,51 @@ begin
 
 			when st_s_1000_rst =>
 				join_suppress    <= "10111";
-				command_engine_3 <= x"80000000";
+				--command_engine_3 <= x"80000000";
 				if (chunk_i = 0) then
 					next_state_suppress <= idle;
 				else
 					next_state_suppress <= st_s_0001;
 				end if;
 
-			when idle =>
+			when almost_finish =>
 				if (filesize_count_finish = '1') then
-					command_engine_0 <= x"80000000";
-					command_engine_1 <= x"80000000";
-					command_engine_2 <= x"80000000";
-					command_engine_3 <= x"80000000";
-					join_suppress    <= "01111";
-					intr_done        <= '1';
-				else
-					join_suppress <= "11111";
-					intr_done     <= '0';
+				    next_state_suppress <= wait_eng_0;
 				end if;
+				
+			when wait_eng_0 =>
+                 if (status_engine_0 = x"000201FF") then -- if all has finished
+                    next_state_suppress <= wait_eng_1;
+                 end if;
+			
+			when wait_eng_1 =>
+			     command_engine_0 <= x"80000000";
+                 if (status_engine_1 = x"000201FF") then -- if all has finished
+                    next_state_suppress <= wait_eng_2;
+                end if;
+            			
+			when wait_eng_2 =>
+			     command_engine_0 <= x"80000000";
+			     command_engine_1 <= x"80000000";
+                 if (status_engine_2 = x"000201FF") then -- if all has finished
+                   next_state_suppress <= wait_eng_3;
+                end if;
+			
+			when wait_eng_3 =>
+			     command_engine_0 <= x"80000000";
+			     command_engine_1 <= x"80000000";
+			     command_engine_2 <= x"80000000";
+                 if (status_engine_3 = x"000201FF") then -- if all has finished
+                    next_state_suppress <= idle;
+                end if;
+            
+			when idle =>
+				command_engine_0 <= x"80000000";
+                command_engine_1 <= x"80000000";
+                command_engine_2 <= x"80000000";
+                command_engine_3 <= x"80000000";
+                join_suppress    <= "01111";
+                intr_done        <= '1';			
 
 			when others =>
 				next_state_suppress <= st_s_0000;
