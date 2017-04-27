@@ -1,0 +1,10 @@
+#-----------------------------------------------------------
+# Webtalk v2014.4 (64-bit)
+# SW Build 1071353 on Tue Nov 18 17:18:21 MST 2014
+# 
+# Start of session at: Thu Apr 27 14:25:08 2017
+# Process ID: 720
+# Log file: C:/mohd/cpcie/test_xillybus_mb_4mD/cpcie.sdk/webtalk/webtalk.log
+# Journal file: C:/mohd/cpcie/test_xillybus_mb_4mD/cpcie.sdk/webtalk\webtalk.jou
+#-----------------------------------------------------------
+source sdk_webtalk.tcl
