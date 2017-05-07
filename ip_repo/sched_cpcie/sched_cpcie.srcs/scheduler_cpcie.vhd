@@ -1,3 +1,29 @@
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- This library is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU Lesser General Public
+-- License as published by the Free Software Foundation; either
+-- version 2.1 of the License, or (at your option) any later version.
+-- 
+-- This library is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+-- Lesser General Public License for more details.
+-- 
+-- You should have received a copy of the GNU Lesser General Public
+-- License along with this library; if not, write to the Free Software
+-- Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+-- 
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- 
+-- Author: 			Mohd Amiruddin Zainol (mohd.a.zainol@gmail.com)
+-- Entity: 			scheduler_cpcie.vhd
+-- Version:			1.0
+-- Description: 		The scheduler for CPCIe
+-- 
+-- Additional Comments:
+-- 
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_arith.all;
@@ -226,8 +252,6 @@ architecture arch_imp of scheduler_cpcie is
 	signal comp_size_2_reg : std_logic_vector(31 downto 0);
 	signal comp_size_3_reg : std_logic_vector(31 downto 0);
 
-	signal ff_header : std_logic := '0';
-
 	signal s_axis_tdata_reg        : std_logic_vector(31 downto 0);
 	signal s_axis_tvalid_reg       : std_logic := '0';
 	signal s_axis_header_tdata_reg : std_logic_vector(31 downto 0);
@@ -298,8 +322,8 @@ begin
     s_axis_tdata_endian   <= s_axis_tdata(7 downto 0) & s_axis_tdata(15 downto 8) & s_axis_tdata(23 downto 16) & s_axis_tdata(31 downto 24);
 	sched_tready_c        <= m_axis_fork_tready(0) and fork_dest_logic_or;
 	m_axis_fork_tvalid(0) <= s_axis_tvalid when sel_cd = "10" else s_axis_tvalid_d_split when sel_cd = "01" else '0';
-	m_axis_fork_tdata     <= s_axis_tdata_endian when sel_cd = "10" else s_axis_tdata_d_split when sel_cd = "01" else x"00000000";
-	--m_axis_fork_tdata     <= s_axis_tdata when sel_cd = "10" else s_axis_tdata_d_split when sel_cd = "01" else x"00000000";
+	--m_axis_fork_tdata     <= s_axis_tdata_endian when sel_cd = "10" else s_axis_tdata_d_split when sel_cd = "01" else x"00000000";
+	m_axis_fork_tdata     <= s_axis_tdata when sel_cd = "10" else s_axis_tdata_d_split when sel_cd = "01" else x"00000000";
 	m_axis_fork_tdest     <= s_sched_tdest when sel_cd = "10" else sup_dest when sel_cd = "01" else x"0";
 
 	s_axis_tdata_d_split <= s_axis_tdata_reg;
@@ -388,7 +412,7 @@ begin
 				m_axis_header_tvalid <= '0';
 			else
 				if (sel_cd = "10") then
-					m_axis_header_tvalid <= (ff3_eng_pulse or ff4_eng_pulse) or (ff_header);
+					m_axis_header_tvalid <= (ff3_eng_pulse or ff4_eng_pulse);
 				elsif (sel_cd = "01") then
 					m_axis_header_tvalid <= s_axis_tvalid_h;
 				else
@@ -519,21 +543,21 @@ begin
 			elsif command_in(24) = '1' then -- if start engine
 				case (command_in(7 downto 0)) is -- blocksize from command
 					when "00000001" => internal_tick <= x"00000200"; --   512
-						chunk_to_comp                <= "000000000" & filesize_u(31 downto 9);
+						chunk_to_comp                <= "00000000000" & filesize_u(31 downto 11);
 					when "00000010" => internal_tick <= x"00000400"; --  1024
-						chunk_to_comp                <= "00000000" & filesize_u(31 downto 8);
+						chunk_to_comp                <= "0000000000" & filesize_u(31 downto 10);
 					when "00000100" => internal_tick <= x"00000800"; --  2048
-						chunk_to_comp                <= "0000000" & filesize_u(31 downto 7);
+						chunk_to_comp                <= "000000000" & filesize_u(31 downto 9);
 					when "00001000" => internal_tick <= x"00001000"; --  4096
-						chunk_to_comp                <= "000000" & filesize_u(31 downto 6);
+						chunk_to_comp                <= "00000000" & filesize_u(31 downto 8);
 					when "00010000" => internal_tick <= x"00002000"; --  8192
-						chunk_to_comp                <= "00000" & filesize_u(31 downto 5);
+						chunk_to_comp                <= "0000000" & filesize_u(31 downto 7);
 					when "00100000" => internal_tick <= x"00004000"; -- 16384
-						chunk_to_comp                <= "0000" & filesize_u(31 downto 4);
+						chunk_to_comp                <= "000000" & filesize_u(31 downto 6);
 					when "01000000" => internal_tick <= x"00008000"; -- 32768
-						chunk_to_comp                <= "000" & filesize_u(31 downto 3);
+						chunk_to_comp                <= "00000" & filesize_u(31 downto 5);
 					when "10000000" => internal_tick <= x"00010000"; -- 65536
-						chunk_to_comp                <= "00" & filesize_u(31 downto 2);
+						chunk_to_comp                <= "0000" & filesize_u(31 downto 4);
 					when others => internal_tick     <= x"00000400"; -- by default it is 1 KB of blocksize
 						chunk_to_comp                <= filesize_u(31 downto 0);
 				end case;
@@ -632,7 +656,6 @@ begin
 		--declare default state for next_state_c to avoid latches
 		next_state_c        <= state_c; --default is to stay in current state
 		count_tick_next     <= count_tick_i;
-		ff_header           <= '0';
 		chunk_temp_cnt_next <= chunk_temp_cnt;
 
 		--insert statements to decode next_state_c
@@ -644,20 +667,16 @@ begin
 				end if;
 
 			when st2_header_filesize =>
-				ff_header    <= '1';
 				next_state_c <= st2_header_blocksize;
 
 			when st2_header_blocksize =>
-				ff_header    <= '1';
 				next_state_c <= st2_header_totalchunk;
 
 			when st2_header_totalchunk =>
-				ff_header           <= '1';
 				chunk_temp_cnt_next <= chunk_i;
 				next_state_c        <= st2_header_compsize_crc;
 
 			when st2_header_compsize_crc =>
-				ff_header <= '1';
 				if (chunk_temp_cnt = 1) then
 					next_state_c <= st1_start;
 				else
