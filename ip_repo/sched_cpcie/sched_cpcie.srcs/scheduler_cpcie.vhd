@@ -155,6 +155,7 @@ architecture arch_imp of scheduler_cpcie is
 	signal count_chunk          : std_logic_vector(15 downto 0);
 	signal count_chunk_next     : std_logic_vector(15 downto 0);
 	signal s_axis_tvalid_h      : std_logic                    := '0';
+	signal s_axis_tvalid_h_next : std_logic                    := '0';
 
 	type state_type_h is (st_count_idle, st_count_1, st_count_2, st_count_3, st_count_wait, st_count_4, st_count_4_wait, st_count_4_wait_ready);
 	signal state_count, next_state_count : state_type_h;
@@ -715,7 +716,7 @@ begin
 
 	DECOMP_FSM_STATE_PROC : process(clk, next_state_d, s_axis_tvalid_d_next, 
 		s_axis_tdata_d_next, s_sched_tdest_d_next, sched_tready_d_next, 
-		count_chunk_next
+		count_chunk_next, s_axis_tvalid_h_next
 	)
 	begin
 		if (clk'event and clk = '1') then
@@ -726,6 +727,7 @@ begin
 				s_sched_tdest_d <= (others => '0');
 				sched_tready_d  <= '0';
 				count_chunk     <= (others => '0');
+				s_axis_tvalid_h <= '0';
 			else
 				state_d         <= next_state_d;
 				s_axis_tvalid_d <= s_axis_tvalid_d_next;
@@ -733,6 +735,7 @@ begin
 				s_sched_tdest_d <= s_sched_tdest_d_next;
 				sched_tready_d  <= sched_tready_d_next;
 				count_chunk     <= count_chunk_next;
+				s_axis_tvalid_h <= s_axis_tvalid_h_next;
 			end if;
 		end if;
 	end process;
@@ -744,20 +747,30 @@ begin
 	-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 	DECOMP_FSM_LOGIC_PROC : process(state_d, state_count, sel_cd, sched_tvalid, 
-		count_chunk, s_axis_tdata_reg, s_axis_tvalid_reg, sup_dest, 
-		m_axis_fork_tready, check_nxt_eng_bit, 
-		count_h_size, wait_nxt_rdy_eng_bit, check_eng_full_bit
+		count_chunk, s_axis_tdata_reg, s_axis_tvalid_reg, sup_dest, s_axis_tvalid_h,
+		m_axis_fork_tready, check_nxt_eng_bit, sched_tready_d, s_axis_tvalid_d,
+		count_h_size, wait_nxt_rdy_eng_bit, check_eng_full_bit, s_axis_tvalid_h, s_sched_tdest_d
 	)
 	begin
 		--declare default state for next_state to avoid latches
 		next_state_d          <= state_d; --default is to stay in current state
-		s_axis_tvalid_d_next  <= '0';
 		s_axis_tdata_d_next   <= s_axis_tdata_reg;
-		s_sched_tdest_d_next  <= x"0";
-		sched_tready_d_next   <= '0';
-		count_chunk_next      <= (others => '0');
-		s_axis_tvalid_h       <= '0';
 		s_axis_tvalid_d_split <= '0';
+		
+		--s_sched_tdest_d_next  <= x"0";
+		s_sched_tdest_d_next  <= s_sched_tdest_d;
+		
+		--s_axis_tvalid_h_next  <= '0';
+		s_axis_tvalid_h_next <= s_axis_tvalid_h;
+
+        --sched_tready_d_next   <= '0';
+        sched_tready_d_next   <= sched_tready_d;
+        
+        --count_chunk_next      <= (others => '0');
+		count_chunk_next      <= count_chunk;
+		
+		--s_axis_tvalid_d_next  <= '0';
+		s_axis_tvalid_d_next  <= s_axis_tvalid_d;
 
 		case (state_d) is
 			when st_d_idle =>
@@ -785,24 +798,25 @@ begin
 				sched_tready_d_next <= '1';
 				s_axis_tready_d     <= '1';
 				count_chunk_next    <= s_axis_tdata_reg(14 downto 0) & '0'; -- multiply by 2 (including CRC)
+				s_axis_tvalid_h_next     <= '1';
 				next_state_d        <= st_d_4;
 
 			when st_d_4 =>
 				sched_tready_d_next <= '1';
 				s_axis_tready_d     <= '1';
-				s_axis_tvalid_h     <= '1';
+				s_axis_tvalid_h_next     <= '1';
 				count_chunk_next    <= count_chunk - 1;
 				next_state_d        <= st_d_4_CRC;
 
 			when st_d_4_CRC =>
 				sched_tready_d_next <= '1';
 				s_axis_tready_d     <= '1';
-				s_axis_tvalid_h     <= '1';
 				count_chunk_next    <= count_chunk - 1;
 				if (count_chunk = 1) then
 					s_sched_tdest_d_next <= sup_dest;
 					next_state_d         <= st_d_5;
 				else
+				    s_axis_tvalid_h_next     <= '1';
 					next_state_d <= st_d_4;
 				end if;
 
