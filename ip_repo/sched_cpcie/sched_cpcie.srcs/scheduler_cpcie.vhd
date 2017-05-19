@@ -276,6 +276,7 @@ architecture arch_imp of scheduler_cpcie is
 
 	signal s_axis_tready_d       : std_logic := '0';
 	signal s_axis_tvalid_d_split : std_logic := '0';
+	signal s_axis_tvalid_d_split_next : std_logic := '0';
 
 	signal s_axis_tdata_d_split : std_logic_vector(31 downto 0) := x"00000000";
 
@@ -716,7 +717,7 @@ begin
 
 	DECOMP_FSM_STATE_PROC : process(clk, next_state_d, s_axis_tvalid_d_next, 
 		s_axis_tdata_d_next, s_sched_tdest_d_next, sched_tready_d_next, 
-		count_chunk_next, s_axis_tvalid_h_next
+		count_chunk_next, s_axis_tvalid_h_next, s_axis_tvalid_d_split_next
 	)
 	begin
 		if (clk'event and clk = '1') then
@@ -728,6 +729,7 @@ begin
 				sched_tready_d  <= '0';
 				count_chunk     <= (others => '0');
 				s_axis_tvalid_h <= '0';
+				s_axis_tvalid_d_split <= '0';
 			else
 				state_d         <= next_state_d;
 				s_axis_tvalid_d <= s_axis_tvalid_d_next;
@@ -736,6 +738,7 @@ begin
 				sched_tready_d  <= sched_tready_d_next;
 				count_chunk     <= count_chunk_next;
 				s_axis_tvalid_h <= s_axis_tvalid_h_next;
+				s_axis_tvalid_d_split <= s_axis_tvalid_d_split_next;
 			end if;
 		end if;
 	end process;
@@ -748,14 +751,16 @@ begin
 
 	DECOMP_FSM_LOGIC_PROC : process(state_d, state_count, sel_cd, sched_tvalid, 
 		count_chunk, s_axis_tdata_reg, s_axis_tvalid_reg, sup_dest, s_axis_tvalid_h,
-		m_axis_fork_tready, check_nxt_eng_bit, sched_tready_d, s_axis_tvalid_d,
+		m_axis_fork_tready, check_nxt_eng_bit, sched_tready_d, s_axis_tvalid_d, s_axis_tvalid_d_split,
 		count_h_size, wait_nxt_rdy_eng_bit, check_eng_full_bit, s_axis_tvalid_h, s_sched_tdest_d
 	)
 	begin
 		--declare default state for next_state to avoid latches
 		next_state_d          <= state_d; --default is to stay in current state
 		s_axis_tdata_d_next   <= s_axis_tdata_reg;
-		s_axis_tvalid_d_split <= '0';
+		
+		--s_axis_tvalid_d_split <= '0';
+		s_axis_tvalid_d_split_next <= s_axis_tvalid_d_split;
 		
 		--s_sched_tdest_d_next  <= x"0";
 		s_sched_tdest_d_next  <= s_sched_tdest_d;
@@ -792,13 +797,15 @@ begin
 			when st_d_2 =>              -- read blocksize
 				sched_tready_d_next <= '1';
 				s_axis_tready_d     <= '1';
+				s_axis_tvalid_h_next     <= '1';
+				count_chunk_next    <= s_axis_tdata_reg(14 downto 0) & '0'; -- multiply by 2 (including CRC)
 				next_state_d        <= st_d_3;
 
 			when st_d_3 =>              -- read total chunks
 				sched_tready_d_next <= '1';
 				s_axis_tready_d     <= '1';
-				count_chunk_next    <= s_axis_tdata_reg(14 downto 0) & '0'; -- multiply by 2 (including CRC)
 				s_axis_tvalid_h_next     <= '1';
+				count_chunk_next    <= count_chunk - 1;
 				next_state_d        <= st_d_4;
 
 			when st_d_4 =>
@@ -812,7 +819,7 @@ begin
 				sched_tready_d_next <= '1';
 				s_axis_tready_d     <= '1';
 				count_chunk_next    <= count_chunk - 1;
-				if (count_chunk = 1) then
+				if (count_chunk = 2) then
 					s_sched_tdest_d_next <= sup_dest;
 					next_state_d         <= st_d_5;
 				else
@@ -840,7 +847,7 @@ begin
 				end if;
 				s_sched_tdest_d_next  <= sup_dest;
 				s_axis_tvalid_d_next  <= '1';
-				s_axis_tvalid_d_split <= '1';
+				s_axis_tvalid_d_split_next <= '1';
 				next_state_d          <= st_d_wait_2;
 
 			when st_d_wait_2 =>
@@ -856,7 +863,7 @@ begin
 				end if;
 				s_sched_tdest_d_next  <= sup_dest;
 				s_axis_tvalid_d_next  <= '1';
-				s_axis_tvalid_d_split <= '1';
+				s_axis_tvalid_d_split_next <= '1';
 				next_state_d          <= st_d_wait_3;
 
 			when st_d_wait_3 =>
@@ -874,14 +881,14 @@ begin
 					s_axis_tready_d <= '0';
 				end if;
 				if ((state_count = st_count_2) or (state_count = st_count_4)) and (check_eng_full_bit = '0') then
-					s_axis_tvalid_d_split <= '1';
+					s_axis_tvalid_d_split_next <= '1';
 				else
-					s_axis_tvalid_d_split <= '0';
+					s_axis_tvalid_d_split_next <= '0';
 				end if;
 
 			when st_d_wait_3_ready =>
 				s_sched_tdest_d_next  <= sup_dest;
-				s_axis_tvalid_d_split <= '1';
+				s_axis_tvalid_d_split_next <= '1';
 				if (wait_nxt_rdy_eng_bit = '1' and (state_count = st_count_wait or state_count = st_count_4) and (check_eng_full_bit = '0')) then
 					s_axis_tready_d <= '1';
 				elsif (wait_nxt_rdy_eng_bit = '1' and state_count /= st_count_wait and check_eng_full_bit = '0') then
@@ -909,11 +916,11 @@ begin
 			when st_d_5 =>
 				if (m_axis_fork_tready(0) = '1') then
 					s_axis_tvalid_d_next  <= '1';
-					s_axis_tvalid_d_split <= '1';
+					s_axis_tvalid_d_split_next <= '1';
 					s_axis_tready_d       <= '1';
 				else
 					s_axis_tvalid_d_next  <= '0';
-					s_axis_tvalid_d_split <= '0';
+					s_axis_tvalid_d_split_next <= '0';
 					s_axis_tready_d       <= '0';
 				end if;
 				if (check_nxt_eng_bit = '0' and (count_h_size < 5)) then
@@ -996,7 +1003,8 @@ begin
 				if (m_axis_fork_tready(0) = '1' and s_axis_tvalid_d = '1') then
 					count_h_size_next <= count_h_size - 1;
 				end if;
-				if (count_h_size = 2) then
+				--if (count_h_size = 2) then -- test 1
+				if (count_h_size = 1) then -- test 2
 					sup_dest_next(0)  <= sched_tick_in;
 					sup_dest_next(1)  <= sup_dest(0);
 					sup_dest_next(2)  <= sup_dest(1);
@@ -1024,7 +1032,8 @@ begin
 				if (check_eng_full_bit = '1') then
 					next_state_count <= st_count_4_wait;
 				else
-					count_h_size_next <= count_h_size - 1;
+					--count_h_size_next <= count_h_size - 1; -- test 3
+					count_h_size_next <= count_h_size - 2; -- test 4
 					next_state_count  <= st_count_2;
 				end if;
 
