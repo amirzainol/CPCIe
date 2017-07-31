@@ -6,6 +6,8 @@ CPCIe is a hardware compressor/decompressor implemented on FPGA, to compress/dec
 
 - [Files in the Repository](#files-and-folders-in-the-repository)
 - [Resource Utilization](#resource-utilization)
+- [Getting Started](#getting-started)
+- [Issues](#issues)
 
 Files and Folders in the Repository
 -----------------------------------
@@ -55,3 +57,18 @@ Table below shows the utilization of each component used in CPCIe, synthesized u
 | X-MatchPRO Engine       |       8013 |             3187 |            14 |
 | MicroBlaze Processor    |        657 |             1002 |             2 |
 | AXI4-Lite Interface     |        364 |             154  |             0 |
+
+Getting Started
+-----------------------------------
+
+1. Run TCL script.
+2. Synthesize the design.
+3. Generate the bitstream before testing on an FPGA board (CPCIe supports Xilinx board at the moment).
+4. Run SDK.
+5. Exercise the system with a dataset.
+6. There are two IP Cores which can be extended for further research: scheduler and X-MatchPRO compressor/decompressor engines. These IP Cores can be found in ip_repo.
+
+Issues
+-----------------------------------
+
+We are trying our best to ensure this project is accessible to public use for research purposes without any issues. For the time being, CPCIe guarantees the dataset can be compressed and decompressed to its original data without any bit loses. The only thing needs to be carefully taken is to make sure that the clock and reset signals are correctly wired to meet the timing, and thus to avoid any bit errors.
