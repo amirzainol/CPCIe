@@ -1,9 +1,0 @@
-14:20:08 INFO  : Processing command line option -hwspec C:/mohd/cpcie/test_xillybus_mb_4mD/cpcie.sdk/cpcie_top.hdf.
-14:20:13 INFO  : Launching XSDB server: xsdb.bat -s C:/Xilinx/SDK/2014.4/scripts/xsdb/xsdb/xsdb-server.tcl 2450
-14:24:50 INFO  : FPGA configured successfully with bitstream "C:/mohd/cpcie/test_xillybus_mb_4mD/cpcie.sdk/cpcie_top_hw_platform_0/cpcie_top.bit"
-14:25:07 ERROR : Unexpected error while parsing XMD response ?: com.google.gson.JsonSyntaxException: com.google.gson.stream.MalformedJsonException: invalid number or unquoted string near 
-16:05:58 INFO  : Launching XSDB server: xsdb.bat -s C:/Xilinx/SDK/2014.4/scripts/xsdb/xsdb/xsdb-server.tcl 2450
-16:12:24 INFO  : Processor reset is completed for microblaze_0
-16:12:30 INFO  : microblaze_0 Processor is in use. Please stop existing Run or Debug sessions before launching.
-16:12:32 INFO  : Processor reset is completed for microblaze_0
-16:37:39 ERROR : Unexpected error while parsing XMD response ?: com.google.gson.JsonSyntaxException: com.google.gson.stream.MalformedJsonException: invalid number or unquoted string near 
