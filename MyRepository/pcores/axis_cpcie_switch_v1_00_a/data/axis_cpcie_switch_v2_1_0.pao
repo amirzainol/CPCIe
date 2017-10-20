@@ -1,4 +1,0 @@
-lib proc_common_v3_00_a  all 
-lib axi_lite_ipif_v1_01_a  all 
-lib axis_cpcie_switch_v1_00_a user_logic vhdl
-lib axis_cpcie_switch_v1_00_a axis_cpcie_switch vhdl

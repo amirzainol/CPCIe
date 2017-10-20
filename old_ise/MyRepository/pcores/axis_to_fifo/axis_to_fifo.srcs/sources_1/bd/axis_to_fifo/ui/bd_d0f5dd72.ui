@@ -1,0 +1,17 @@
+{
+   guistr: "# # String gsaved with Nlview 6.4.10  2014-10-02 bk=1.3207 VDI=35 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port FIFO_WR -pg 1 -y 40 -defaultsOSRD
+preplace port S_AXIS_CLK -pg 1 -y 100 -defaultsOSRD
+preplace port FIFO_RD -pg 1 -y 60 -defaultsOSRD
+preplace port FIFO_RD_RST -pg 1 -y 80 -defaultsOSRD
+preplace port FIFO_RD_CLK -pg 1 -y 120 -defaultsOSRD
+preplace inst fifo_gen_axis_to_fifo -pg 1 -lvl 1 -y 80 -defaultsOSRD
+preplace netloc wr_clk_1 1 0 1 N
+preplace netloc rd_clk_1 1 0 1 N
+preplace netloc rst_1 1 0 1 N
+preplace netloc FIFO_WRITE_1 1 0 1 N
+preplace netloc FIFO_READ_1 1 0 1 N
+levelinfo -pg 1 120 270 420
+",
+}

@@ -1,0 +1,7 @@
+Running: xsim.dir/scheduler_cpcie_behav/xsimk.exe -simmode gui -wdb scheduler_cpcie_behav.wdb -simrunnum 0 -socket 60211
+Design successfully loaded
+Design Loading Memory Usage: 19164 KB (Peak: 19164 KB)
+Design Loading CPU Usage: 92 ms
+Simulation completed
+Simulation Memory Usage: 19500 KB (Peak: 19500 KB)
+Simulation CPU Usage: 92 ms

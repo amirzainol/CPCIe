@@ -1,6 +1,0 @@
-lib proc_common_v3_00_a  all
-lib axi_lite_ipif_v1_01_a  all
-lib custom_if_v1_00_a fifo_async vhdl
-lib custom_if_v1_00_a sharedmem vhdl
-lib custom_if_v1_00_a user_logic vhdl
-lib custom_if_v1_00_a custom_if vhdl

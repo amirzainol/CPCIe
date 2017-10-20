@@ -1,4 +1,0 @@
-NET "rd_clk" TNM_NET = rd_clk;
-TIMESPEC TS_rd_clk = PERIOD "rd_clk" 5 ns HIGH 50%;
-NET "wr_clk" TNM_NET = wr_clk;
-TIMESPEC TS_wr_clk = PERIOD "wr_clk" 3.33 ns HIGH 50%;
