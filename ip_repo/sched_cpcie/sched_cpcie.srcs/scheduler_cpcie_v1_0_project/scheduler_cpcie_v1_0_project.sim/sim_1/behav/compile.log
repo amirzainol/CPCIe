@@ -1,3 +1,0 @@
-Determining compilation order of HDL files.
-INFO: [VRFC 10-163] Analyzing VHDL file "c:/mohd/cpcie/ip_repo/sched_cpcie/sched_cpcie.srcs/scheduler_cpcie.vhd" into library xil_defaultlib
-INFO: [VRFC 10-307] analyzing entity scheduler_cpcie

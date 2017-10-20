@@ -1,2 +1,0 @@
-# compile vhdl design source files
-vhdl xil_defaultlib  "../../../../scheduler_cpcie.vhd"

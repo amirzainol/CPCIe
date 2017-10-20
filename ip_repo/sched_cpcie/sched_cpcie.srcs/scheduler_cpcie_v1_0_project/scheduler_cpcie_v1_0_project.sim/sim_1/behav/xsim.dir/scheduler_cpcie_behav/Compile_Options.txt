@@ -1,1 +1,0 @@
--wto "a342edba5fce4721bb5de2e66a06e724" --debug "typical" --relax -L "xil_defaultlib" -L "secureip" --snapshot "scheduler_cpcie_behav" "xil_defaultlib.scheduler_cpcie" -log "elaborate.log" 

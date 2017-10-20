@@ -1,0 +1,1 @@
+-intstyle "ise" -incremental -lib "secureip" -o "C:/mohd/hw/my_repo/axis_xmatchpro_v1_00_a/isim/testbench_isim_beh.exe" -prj "C:/mohd/hw/my_repo/axis_xmatchpro_v1_00_a/isim/testbench_beh.prj" "work.testbench" 
