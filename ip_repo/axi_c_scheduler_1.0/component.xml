@@ -838,7 +838,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>b871de86</spirit:value>
+            <spirit:value>dc6b26bf</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -854,7 +854,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>b871de86</spirit:value>
+            <spirit:value>dc6b26bf</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -868,7 +868,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>9ea2b1f4</spirit:value>
+            <spirit:value>a669afb7</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -882,7 +882,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>a3893bb3</spirit:value>
+            <spirit:value>fc9a0c40</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -896,7 +896,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>16328387</spirit:value>
+            <spirit:value>45a2f450</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -1937,7 +1937,7 @@
       <spirit:file>
         <spirit:name>hdl/axi_c_scheduler_v1_0.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_15a1612d</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_b3d81ab7</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -2157,28 +2157,31 @@
   <spirit:vendorExtensions>
     <xilinx:coreExtensions>
       <xilinx:supportedFamilies>
-        <xilinx:family xilinx:lifeCycle="Pre-Production">zynq</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">zynq</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">artix7</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">kintex7</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">virtex7</xilinx:family>
       </xilinx:supportedFamilies>
       <xilinx:taxonomies>
         <xilinx:taxonomy>AXI_Peripheral</xilinx:taxonomy>
       </xilinx:taxonomies>
       <xilinx:displayName>AXI C-Scheduler for CPCIe</xilinx:displayName>
-      <xilinx:coreRevision>2</xilinx:coreRevision>
+      <xilinx:coreRevision>3</xilinx:coreRevision>
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>xilinx.com:user:axi_c_scheduler:1.0</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2017-10-22T02:18:05Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2017-10-23T17:02:16Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="xilinx.com:user:axi_c_scheduler:1.0_ARCHIVE_LOCATION">C:/mohd/CPCIe-master/ip_repo/axi_c_scheduler_1.0</xilinx:tag>
         <xilinx:tag xilinx:name="mohdazainol:user:axi_c_scheduler:1.0_ARCHIVE_LOCATION">C:/mohd/CPCIe-master/ip_repo/axi_c_scheduler_1.0</xilinx:tag>
-        <xilinx:tag xilinx:name="mohdazainol:user_ip:axi_c_scheduler:1.0_ARCHIVE_LOCATION">C:/mohd/CPCIe-master/ip_repo/axi_c_scheduler_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="mohdazainol:user_ip:axi_c_scheduler:1.0_ARCHIVE_LOCATION">C:/mohd/CPCIe/PROJECT_FILES/standalone</xilinx:tag>
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2014.4</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="612207e3"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="13e52971"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="7fe42f1c"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="3eea2786"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="93b7ee75"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="59baefb2"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="efecb48b"/>

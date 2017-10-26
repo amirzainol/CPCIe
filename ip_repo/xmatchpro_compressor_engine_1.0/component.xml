@@ -294,7 +294,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>28163db3</spirit:value>
+            <spirit:value>07b8b0bb</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -310,7 +310,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>28163db3</spirit:value>
+            <spirit:value>07b8b0bb</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -338,7 +338,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>16328387</spirit:value>
+            <spirit:value>45a2f450</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -969,7 +969,7 @@
       <spirit:file>
         <spirit:name>hdl/xmatchpro_compressor_engine_v1_0.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_5eb18c6f</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_8d757f42</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -1289,27 +1289,30 @@
   <spirit:vendorExtensions>
     <xilinx:coreExtensions>
       <xilinx:supportedFamilies>
-        <xilinx:family xilinx:lifeCycle="Pre-Production">zynq</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">zynq</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">artix7</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">kintex7</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">virtex7</xilinx:family>
       </xilinx:supportedFamilies>
       <xilinx:taxonomies>
         <xilinx:taxonomy>AXI_Peripheral</xilinx:taxonomy>
       </xilinx:taxonomies>
       <xilinx:displayName>X-MatchPRO Compressor Engine</xilinx:displayName>
-      <xilinx:coreRevision>6</xilinx:coreRevision>
+      <xilinx:coreRevision>7</xilinx:coreRevision>
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>xilinx.com:user:xmatchpro_compressor_engine:1.0</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2017-10-22T02:16:57Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2017-10-23T16:58:29Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="xilinx.com:user:xmatchpro_compressor_engine:1.0_ARCHIVE_LOCATION">C:/mohd/CPCIe-master/ip_repo/xmatchpro_compressor_engine_1.0</xilinx:tag>
         <xilinx:tag xilinx:name="mohdazainol:user:xmatchpro_compressor_engine:1.0_ARCHIVE_LOCATION">C:/mohd/CPCIe-master/ip_repo/xmatchpro_compressor_engine_1.0</xilinx:tag>
-        <xilinx:tag xilinx:name="mohdazainol:user_ip:xmatchpro_compressor_engine:1.0_ARCHIVE_LOCATION">C:/mohd/CPCIe-master/ip_repo/xmatchpro_compressor_engine_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="mohdazainol:user_ip:xmatchpro_compressor_engine:1.0_ARCHIVE_LOCATION">C:/mohd/CPCIe/PROJECT_FILES/standalone</xilinx:tag>
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2014.4</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="f9dde8e4"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="9cd5bb75"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="4546aa13"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="6fdbd3d2"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="11283044"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="e66b151b"/>
