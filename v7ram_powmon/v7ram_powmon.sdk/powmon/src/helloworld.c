@@ -1,0 +1,657 @@
+#include "xiic.h"
+#include "xil_printf.h"
+#include <math.h>
+#include <stdint.h>
+#include "xil_types.h"
+#include <stdio.h>
+#include "stdlib.h"
+#include <xbasic_types.h>
+#include "xio.h"
+#include "xparameters.h"
+#include "xtmrctr.h"
+#include "xstatus.h"
+#include "xintc.h"
+#include "xil_exception.h"
+#include "xil_io.h"
+
+// Hardware Aliases //
+/* Base Address of the IIC controller connected to the board PMBus */
+#define PMBUS_BASE_ADDRESS    XPAR_IIC_0_BASEADDR
+#define PMBUS_MAIN_SPLY_ADDR  (52)	/* The IIC address of the PMBus controller for the main supplies */
+#define PMBUS_MGT_SPLY_ADDR   (53)	/* The IIC address of the PMBus controller for the MGT supplies */
+#define VCCINT_RAIL           (0)	/* The Output of the PMBus controller connected to vccint (i.e. page) */
+#define VCCAUX_RAIL           (2)	/* The Output of the PMBus controller connected to vccint */
+
+// PMBus Commands //
+#define PMBC_PAGE             (0x0)	/* command allows the output rail to be selected */
+#define PMBC_OPERATION        (0x1)	/* command allows for supply marining, etc */
+#define PMBC_REVISION         (0x98)/* this command returns the PMBus Revision */
+
+// PMBus Command BitMasks //
+#define PMBB_MARGIN_NONE	  (0x80)/* Disables Margining */
+#define PMBB_MARGIN_LO        (0x94)/* Margins the supply low (Ignore Faults) */
+#define PMBB_MARGIN_HI        (0xA4)/* Margins the supply high (Ignore Faults) */
+
+#define PMBUS_NOT_BUSY		  (XIIC_SR_RX_FIFO_EMPTY_MASK | XIIC_SR_TX_FIFO_EMPTY_MASK)
+
+/* This is the PMBus command look-up table. Do not modify---------------------*/
+const u8 list_of_commands[120] = {
+		0x00, // dummy byte
+		0x19, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F, 0x80, 0x81, 0x82, 0x98,
+		0x79, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F, 0x90, 0x91, 0x92,
+		0x93, 0x94, 0x95, 0x96, 0x97, 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6,
+		0xA7, 0xA8, 0xA9, 0x13, 0x14, 0x17, 0x18, 0x3, 0x11, 0x12, 0x15, 0x16,
+		0x0, 0x1, 0x2, 0x4, 0x10, 0x20, 0x3A, 0x3D, 0x41, 0x45, 0x47, 0x49,
+		0x4C, 0x50, 0x54, 0x56, 0x5A, 0x5C, 0x63, 0x69, 0x21, 0x22, 0x23, 0x24,
+		0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x31, 0x32, 0x33, 0x35, 0x36, 0x37,
+		0x38, 0x39, 0x3B, 0x3C, 0x3E, 0x3F, 0x40, 0x42, 0x43, 0x44, 0x46, 0x48,
+		0x4A, 0x4B, 0x4F, 0x51, 0x52, 0x53, 0x55, 0x57, 0x58, 0x59, 0x5B, 0x5D,
+		0x5E, 0x5F, 0x60, 0x61, 0x62, 0x64, 0x65, 0x66, 0x68, 0x6A, 0x6B };
+
+/**
+ * Functions
+ */
+
+/* IIC FMC Port selection */
+#define I2C_HPC_AXI 0x02
+#define I2C_LPC_AXI 0x04
+
+/************************** Constant Definitions *****************************/
+
+#define IIC_SCLK_RATE	 100000
+#define READ_COUNT		 2
+#define WRITE_COUNT		 2
+
+/*****************************************************************************/
+/******************* I2C Registers Definitions *******************************/
+/*****************************************************************************/
+#define GIE          0x01C
+#define ISR       	 0x020
+#define IER       	 0x028
+#define SOFTR      	 0x040
+#define CR      	 0x100
+#define SR      	 0x104
+#define TX_FIFO  	 0x108
+#define RX_FIFO  	 0x10C
+#define ADR       	 0x110
+#define TX_FIFO_OCY	 0x114
+#define RX_FIFO_OCY	 0x118
+#define TEN_ADDR     0x11C
+#define RX_FIFO_PIRQ 0x120
+#define GPO			 0x124
+
+#define READBYTE      0
+#define READWORD      2
+#define WRITEBYTE     4
+#define SENDBYTE      6
+#define WRITEWORD     8
+
+#define PEC_PASS           1
+#define PEC_FAIL           0
+#define CRC8_POLY	   0x07
+#define CRC8_INIT_REM      0x0
+
+//GROUP#0
+// read byte
+
+#define CAPABILITY                          1
+#define STATUS_BYTE                         2
+#define STATUS_VOUT                         3
+#define STATUS_IOUT                         4
+#define STATUS_INPUT                        5
+#define STATUS_TEMEPERATURE                 6
+#define STATUS_CML                          7
+#define STATUS_OTHER                        8
+#define STATUS_MFR_SPECIFIC                 9
+#define STATUS_FANS_1_2                     10
+#define STATUS_FANS_3_4                     11
+#define PMBUS_REVISION                      12
+
+// GROUP #2
+// read word
+
+#define STATUS_WORD                         13
+#define READ_VIN                            14
+#define READ_IIN                            15
+#define READ_VCAP                           16
+#define READ_VOUT                           17
+#define READ_IOUT                           18
+#define READ_TEMPERATURE_1                  19
+#define READ_TEMPERATURE_2                  20
+#define READ_TEMPERATURE_3                  21
+#define READ_FAN_SPEED_1                    22
+#define READ_FAN_SPEED_2                    23
+#define READ_FAN_SPEED_3                    24
+#define READ_FAN_SPEED_4                    25
+#define READ_DUTY_CYCLE                     26
+#define READ_FREQUENCY                      27
+#define READ_POUT                           28
+#define READ_PIN                            29
+#define MFR_VIN_MIN                         30
+#define MFR_VIN_MAX                         31
+#define MFR_IIN_MAX                         32
+#define MFR_PIN_MAX                         33
+#define MFR_VOUT_MIN                        34
+#define MFR_VOUT_MAX                        35
+#define MFR_IOUT_MAX                        36
+#define MFR_POUT_MAX                        37
+#define MFR_TAMBIENT_MAX                    38
+#define MFR_TAMBIENT_MIN                    39
+
+// GROUP #4
+// write byte
+
+#define STORE_DEFAULT_CODE                  40
+#define RESTORE_DEFAULT_CODE                41
+#define STORE_USER_CODE                     42
+#define RESTORE_USER_CODE                   43
+
+// GROUP#6
+// send byte
+
+#define CLEAR_FAULTS                        44
+#define STORE_DEFAULT_ALL                   45
+#define RESTORE_DEFAULT_ALL                 46
+#define STORE_USER_ALL                      47
+#define RESTORE_USER_ALL                    48
+
+//GROUP#0/4
+// read/write byte
+#define PAGE_GENERAL_CALL                  49
+#define OPERATION                           50
+#define ON_OFF_CONFIG                       51
+#define PHASE                               52
+#define WRITE_PROTECT                       53
+#define VOUT_MODE                           54
+#define FAN_CONFIG_1_2                      55
+#define FAN_CONFIG_3_4                      56
+#define VOUT_OV_FAULT_RESPONSE              57
+#define VOUT_UV_FAULT_RESPONSE              58
+#define IOUT_OC_FAULT_RESPONSE              59
+#define IOUT_0C_LV_FAULT_RESPONSE           60
+#define IOUT_UC_FAULT_RESPONSE              61
+#define OT_FAULT_RESPONSE                   62
+#define UT_FAULT_RESPONSE                   63
+#define VIN_OV_FAULT_RESPONSE               64
+#define VIN_UV_FAULT_RESPONSE               65
+#define IIN_OC_FAULT_RESPONSE               66
+#define TON_MAX_FAULT_RESPONSE              67
+#define POUT_OP_FAULT_RESPONSE              68
+
+//GROUP#2/8
+// read/write word
+
+#define VOUT_COMMAND                        69
+#define VOUT_TRIM                           70
+#define VOUT_CAL_OFFSET                     71
+#define VOUT_MAX                            72
+#define VOUT_MARGIN_HIGH                    73
+#define VOUT_MARGIN_LOW                     74
+#define VOUT_TRANSITION_RATE                75
+#define VOUT_DROOP                          76
+#define VOUT_SCALE_LOOP                     77
+#define VOUT_SCALE_MONITOR                  78
+#define POUT_MAX                            79
+#define MAX_DUTY                            80
+#define FREQUENCY_SWITCH                    81
+#define VIN_ON                              82
+#define VIN_OFF                             83
+#define INTERLEAVE                          84
+#define IOUT_CAL_GAIN                       85
+#define IOUT_CAL_OFFSET                     86
+#define FAN_COMMAND_1                       87
+#define FAN_COMMAND_2                       88
+#define FAN_COMMAND_3                       89
+#define FAN_COMMAND_4                       90
+#define VOUT_OV_FAULT_LIMIT                 91
+#define VOUT_OV_WARN_LIMIT                  92
+#define VOUT_UV_WARN_LIMIT                  93
+#define VOUT_UV_FAULT_LIMIT                 94
+#define IOUT_OC_FAULT_LIMIT                 95
+#define IOUT_OC_LV_FAULT_LIMIT              96
+#define IOUT_OC_WARN_LIMIT                  97
+#define IOUT_UC_FAULT_LIMIT                 98
+#define OT_FAULT_LIMIT                      99
+#define OT_WARN_LIMIT                       100
+#define UT_WARN_LIMIT                       101
+#define UT_FAULT_LIMIT                      102
+#define VIN_OV_FAULT_LIMIT                  103
+#define VIN_OV_WARN_LIMIT                   104
+#define VIN_UV_WARN_LIMIT                   105
+#define VIN_UV_FAULT_LIMIT                  106
+#define IIN_OC_FAULT_LIMIT                  107
+#define IIN_OC_WARN_LIMIT                   108
+#define POWER_GOOD_ON                       109
+#define POWER_GOOD_OFF                      110
+#define TON_DELAY                           111
+#define TON_RISE                            112
+#define TON_MAX_FAULT_LIMIT                 113
+#define TOFF_DELAY                          114
+#define TOFF_FALL                           115
+#define TOFF_MAX_WARN_LIMIT                 116
+#define POUT_OP_FAULT_LIMIT                 117
+#define POUT_OP_WARN_LIMIT                  118
+#define PIN_OP_WARN_LIMIT                   119
+
+/*****************************************************************************/
+/************************ Variables/Constants Definitions ********************/
+/*****************************************************************************/
+#define I2C_DELAY	 200 //delay in us between I2C operations
+#define I2C_TIMEOUT	 0xFFFFFF 	//timeout for I2C operations
+static uint32_t axi_iic_baseaddr;
+
+#define I_PART(f)         ((int)f)
+#define F_PART(f,p)       ((int)((f-(float)((int)f))*(p)))
+
+
+/*********** Voltage ************/
+#define V_SCALE	(float)(1.0f/4096.0f)
+
+/************************** Function Prototypes ******************************/
+
+float convert_pmbus_reading(u16 pmbus_reading);
+void delay_us(uint32_t us_count);
+uint32_t I2C_Init_axi();
+uint32_t I2C_Read_axi(uint32_t i2cAddr, uint32_t regAddr,uint32_t rxSize, uint8_t* rxBuf);
+uint32_t I2C_Write_axi(uint32_t i2cAddr, uint32_t regAddr, uint32_t txSize, uint8_t* txBuf);
+
+void Timer_InterruptHandler(void *data, u8 TmrCtrNumber);
+int SetupTimerSystem();
+int SetUpInterruptSystem(XIntc *XIntcInstancePtr, XTmrCtr *XTmrInstancePtr);
+/************************** Variable Definitions *****************************/
+
+
+u8 WriteBuffer[WRITE_COUNT];
+u8 ReadBuffer[READ_COUNT];	/* Read buffer for reading a page. */
+u8 WBuffer[6];
+u8 UpdateBuffer[6];
+u8 RBuffer[6];
+
+union ufloat
+{
+   float f;
+   unsigned u;
+} x;
+
+#define INTC_DEVICE_ID		 	XPAR_INTC_0_DEVICE_ID
+#define INTC_DEVICE_INT_ID	 	XPAR_INTC_0_TMRCTR_0_INTERRUPT_VEC_ID
+#define TMRCTR_DEVICE_ID		XPAR_TMRCTR_0_DEVICE_ID
+#define TIMER_CNTR_0	 		0
+#define RESET_VALUE	 			0xFFF85EE0 	// 0xFA0A1F00 : 1 second at 100 MHz
+											// 0xFFF85EE0 :  0.5 ms
+
+static XIntc InterruptController;
+static XTmrCtr TimerCounterInst;
+
+static u8 PMBus_Addr = 54;	// min 52, max 54
+static u8 PMBus_Rail = 3;	// min 0, max 3
+static u8 loop_check = 48;
+static u8 read_next = 0;
+
+int main(void)
+{
+
+	int xStatus;
+
+	SetupTimerSystem();
+
+	xStatus = SetUpInterruptSystem(&InterruptController, &TimerCounterInst);
+	if (xStatus != XST_SUCCESS) {
+		//xil_printf("INTERRUPT INIT FAILED \n\r");
+		return XST_FAILURE;
+	}
+
+	while(1) {}
+
+	return 0;
+
+}
+
+void delay_us(uint32_t us_count)
+{
+	volatile uint32_t i;
+	for(i = 0; i < us_count*10; i++);
+}
+
+/**************************************************************************//**
+* @brief Reads data from an I2C slave.
+*
+* @param i2cAddr - The address of the I2C slave.
+* @param regAddr - Address of the I2C register to be read.
+*				   Must be set to -1 if it is not used.
+* @param rxSize - Number of bytes to read from the slave.
+* @param rxBuf - Buffer to store the read data.
+*
+* @return Returns the number of bytes read.
+******************************************************************************/
+uint32_t I2C_Read_axi(uint32_t i2cAddr, uint32_t regAddr,
+                      uint32_t rxSize, uint8_t* rxBuf)
+{
+	uint32_t rxCnt = 0;
+	uint32_t timeout = I2C_TIMEOUT;
+
+	// Reset tx fifo
+	Xil_Out32((axi_iic_baseaddr + CR), 0x002);
+	// Enable iic
+	Xil_Out32((axi_iic_baseaddr + CR), 0x001);
+	delay_us(I2C_DELAY);
+
+	if(regAddr != -1)
+	{
+		// Set the slave I2C address
+		Xil_Out32((axi_iic_baseaddr + TX_FIFO), (0x100 | (i2cAddr << 1)));
+		// Set the slave register address
+		Xil_Out32((axi_iic_baseaddr + TX_FIFO), regAddr);
+	}
+
+	// Set the slave I2C address
+	Xil_Out32((axi_iic_baseaddr + TX_FIFO), (0x101 | (i2cAddr << 1)));
+	// Start a read transaction
+	Xil_Out32((axi_iic_baseaddr + TX_FIFO), 0x200 + rxSize);
+
+	// Read data from the I2C slave
+	while(rxCnt < rxSize)
+	{
+		//wait for data to be available in the RxFifo
+		while((Xil_In32(axi_iic_baseaddr + SR) & 0x00000040) && (timeout--));
+		if(timeout == -1)
+		{
+			//disable the I2C core
+			Xil_Out32((axi_iic_baseaddr + CR), 0x00);
+			//set the Rx FIFO depth to maximum
+			Xil_Out32((axi_iic_baseaddr + RX_FIFO_PIRQ), 0x0F);
+			//reset the I2C core and flush the Tx fifo
+			Xil_Out32((axi_iic_baseaddr + CR), 0x02);
+			//enable the I2C core
+			Xil_Out32((axi_iic_baseaddr + CR), 0x01);
+			return rxCnt;
+		}
+		timeout = I2C_TIMEOUT;
+
+		//read the data
+		rxBuf[rxCnt] = Xil_In32(axi_iic_baseaddr + RX_FIFO) & 0xFFFF;
+
+		//increment the receive counter
+		rxCnt++;
+
+	}
+
+	delay_us(I2C_DELAY);
+
+	return rxCnt;
+}
+
+float convert_pmbus_reading(u16 pmbus_reading)
+{
+	u8 x_e_u;
+	int x_e;
+	float x_p;
+	s16 x_m;
+
+	/* TO DO: Handle negative mantissa:
+		It will never happen since current and power can't be negative */
+
+	/* Extract the mantissa and exponent. See Section 7.1 in PMBus Spec. - Part 2*/
+	x_m = (pmbus_reading & 0x07FF);
+	x_e_u = ((pmbus_reading & 0xF800) >> 11);
+
+	//printf ("mantisa is %d ,exponent is %d\n", x_m, x_e_u);
+
+	/* Convert from 2's complement */
+	if (x_e_u > 15) {
+		x_e_u = ((x_e_u ^ 255) + 1) & 0x1F;
+		x_e = -x_e_u;
+	}
+	else {
+		x_e = x_e_u;
+	}
+
+	//printf ("Exponent after adjustment %d  \n",x_e);
+
+	x_p = pow(2.0, (float)x_e);
+	return ((float)x_m)*x_p;
+}
+
+uint32_t I2C_Init_axi()
+
+{
+	uint32_t ret = 0;
+
+    //set the I2C core AXI address
+    axi_iic_baseaddr = PMBUS_BASE_ADDRESS;
+    //disable the I2C core
+	Xil_Out32((axi_iic_baseaddr + CR), 0x00);
+	//set the Rx FIFO depth to maximum
+	Xil_Out32((axi_iic_baseaddr + RX_FIFO_PIRQ), 0x0F);
+	//reset the I2C core and flush the Tx fifo
+	Xil_Out32((axi_iic_baseaddr + CR), 0x02);
+	//enable the I2C core
+    Xil_Out32((axi_iic_baseaddr + CR), 0x01);
+
+
+	return ret;
+}
+
+
+/**************************************************************************//**
+* @brief Writes data to an I2C slave.
+*
+* @param i2cAddr - The address of the I2C slave.
+* @param regAddr - Address of the I2C register to be read.
+*				   Must be set to -1 if it is not used.
+* @param txSize - Number of bytes to write to the slave.
+* @param txBuf - Buffer to store the data to be transmitted.
+*
+* @return Returns the number of bytes written.
+******************************************************************************/
+uint32_t I2C_Write_axi(uint32_t i2cAddr, uint32_t regAddr, uint32_t txSize, uint8_t* txBuf)
+{
+	uint32_t txCnt = 0;
+	uint32_t timeout = I2C_TIMEOUT;
+
+	// Reset tx fifo
+	Xil_Out32((axi_iic_baseaddr + CR), 0x002);
+	// enable iic
+	Xil_Out32((axi_iic_baseaddr + CR), 0x001);
+	delay_us(I2C_DELAY);
+
+	// Set the I2C address
+	Xil_Out32((axi_iic_baseaddr + TX_FIFO), (0x100 | (i2cAddr << 1)));
+	if(regAddr != -1)
+	{
+		// Set the slave register address
+		Xil_Out32((axi_iic_baseaddr + TX_FIFO), regAddr);
+	}
+
+	// Write data to the I2C slave
+	while((txCnt < txSize) && (timeout))
+	{
+		timeout = I2C_TIMEOUT;
+		// put the Tx data into the Tx FIFO
+		Xil_Out32((axi_iic_baseaddr + TX_FIFO), (txCnt == txSize - 1) ? (0x200 | txBuf[txCnt]) : txBuf[txCnt]);
+		while (((Xil_In32(axi_iic_baseaddr + SR) & 0x80) == 0x00) && (--timeout));
+		txCnt++;
+	}
+	delay_us(I2C_DELAY);
+
+	return (timeout ? txCnt : 0);
+}
+
+int SetupTimerSystem()
+{
+	XTmrCtr_Initialize(&TimerCounterInst, TMRCTR_DEVICE_ID);
+
+	XTmrCtr_SetHandler(&TimerCounterInst,
+			Timer_InterruptHandler,
+			&TimerCounterInst);
+
+	XTmrCtr_SetResetValue(&TimerCounterInst,
+				0, //Change with generic value
+				0xF8000000);
+	XTmrCtr_SetOptions(&TimerCounterInst,
+				TIMER_CNTR_0,
+				(XTC_INT_MODE_OPTION | XTC_AUTO_RELOAD_OPTION ));
+	XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_0);
+
+	return 0;
+}
+
+int SetUpInterruptSystem(XIntc *XIntcInstancePtr, XTmrCtr *XTmrInstancePtr)
+{
+	int Status;
+
+	Status = XIntc_Initialize(&InterruptController, INTC_DEVICE_ID);
+	if (Status != XST_SUCCESS) {
+		//xil_printf("Failed init intc\r\n");
+		return XST_FAILURE;
+	}
+
+	Status = XIntc_Connect(XIntcInstancePtr, INTC_DEVICE_INT_ID,
+				   (XInterruptHandler)Timer_InterruptHandler,
+				   (void *)XTmrInstancePtr);
+	if (Status != XST_SUCCESS) {
+		//xil_printf("Failed channel connect intc %d\r\n", Status);
+		return XST_FAILURE;
+	}
+
+	// Start the interrupt controller
+	Status = XIntc_Start(XIntcInstancePtr, XIN_REAL_MODE);
+	if (Status != XST_SUCCESS) {
+		//xil_printf("Failed to start intc\r\n");
+		return XST_FAILURE;
+	}
+
+	// Enable interrupts from the hardware
+	XIntc_Enable(XIntcInstancePtr, INTC_DEVICE_INT_ID);
+	//xil_printf("Enable\r\n");
+
+	Xil_ExceptionInit();
+	//xil_printf("Xil_ExceptionInit\r\n");
+
+	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT,
+				(Xil_ExceptionHandler)XIntc_InterruptHandler,
+				XIntcInstancePtr);
+	//xil_printf("Xil_ExceptionRegisterHandler\r\n");
+
+	Xil_ExceptionEnable();
+	//xil_printf("Xil_ExceptionEnable\r\n");
+
+	return XST_SUCCESS;
+
+}
+
+void GetReading()
+{
+	uint32_t regAddr;
+	u16 pout_int;
+
+	I2C_Init_axi();
+	WriteBuffer[0] = PMBus_Rail;
+	WriteBuffer[1] = 0;
+	WriteBuffer[2] = 0;
+	I2C_Write_axi(PMBus_Addr, PMBC_PAGE, 1, WriteBuffer);
+	regAddr = list_of_commands[READ_POUT];
+	I2C_Read_axi(PMBus_Addr, regAddr,2, ReadBuffer);
+	pout_int = (ReadBuffer[1] << 8) | ReadBuffer[0];
+	x.f = convert_pmbus_reading(pout_int);
+
+	loop_check++;
+	PMBus_Rail++;
+	if (read_next == 12) {
+		printf("%f\r\n", x.f);
+	}
+	else {
+		printf("%f, ", x.f);
+	}
+
+	//printf("%f\r\n", x.f);
+
+}
+
+void Timer_InterruptHandler(void *data, u8 TmrCtrNumber) {
+
+	XTmrCtr_Stop(&TimerCounterInst, TIMER_CNTR_0);
+
+	//GetReading();
+
+
+	     if (PMBus_Addr == 52 && PMBus_Rail == 0 ) {
+	    read_next = 1;
+	    GetReading();
+
+	}
+
+	else if (PMBus_Addr == 52 && PMBus_Rail == 1 ) {
+	    read_next = 2;
+	    GetReading();
+
+	}
+	else if (PMBus_Addr == 52 && PMBus_Rail == 2) {
+	    read_next = 3;
+	    GetReading();
+
+	}
+	else if (PMBus_Addr == 52 && PMBus_Rail == 3 ) {
+	    read_next = 4;
+	    GetReading();
+
+	}
+	else if (PMBus_Addr == 53 && PMBus_Rail == 0 ) {
+	    read_next = 5;
+	    GetReading();
+
+	}
+	else if (PMBus_Addr == 53 && PMBus_Rail == 1 ) {
+	    read_next = 6;
+	    GetReading();
+
+	}
+	else if (PMBus_Addr == 53 && PMBus_Rail == 2 ) {
+	    read_next = 7;
+	    GetReading();
+
+	}
+	else if (PMBus_Addr == 53 && PMBus_Rail == 3 ) {
+	    read_next = 8;
+	    GetReading();
+
+	}
+	else if (PMBus_Addr == 54 && PMBus_Rail == 0 ) {
+	    read_next = 9;
+	    GetReading();
+
+	}
+	else if (PMBus_Addr == 54 && PMBus_Rail == 1 ) {
+	    read_next = 10;
+	    GetReading();
+
+	}
+	else if (PMBus_Addr == 54 && PMBus_Rail == 2 ) {
+	    read_next = 11;
+	    GetReading();
+
+	}
+	else if (PMBus_Addr == 54 && PMBus_Rail == 3 ) {
+	    read_next = 12;
+	    GetReading();
+	}
+
+
+
+
+	 		if (loop_check == 60) {
+	 			loop_check = 48; // reset to register address
+		    	}
+    		if (PMBus_Rail == 4) {
+    			PMBus_Rail = 0; // reset to first Rail
+    			PMBus_Addr++; // skip next Addr
+    		}
+    		if (PMBus_Addr == 55) {
+    			PMBus_Addr = 52; // reset to first Addr
+	    	}
+
+
+	XTmrCtr_SetOptions(&TimerCounterInst, TIMER_CNTR_0, XTC_INT_MODE_OPTION|XTC_AUTO_RELOAD_OPTION);
+	XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_0, RESET_VALUE);
+	XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_0);
+}
