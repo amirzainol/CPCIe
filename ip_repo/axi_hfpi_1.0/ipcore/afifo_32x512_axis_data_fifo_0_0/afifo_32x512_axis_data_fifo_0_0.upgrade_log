@@ -1,0 +1,79 @@
+Copyright 1986-2014 Xilinx, Inc. All Rights Reserved.
+------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2014.4 (win64) Build 1071353 Tue Nov 18 18:29:27 MST 2014
+| Date         : Tue Oct 31 12:22:28 2017
+| Host         : IT002223 running 64-bit Service Pack 1  (build 7601)
+| Command      : upgrade_ip
+| Device       : xc7vx485tffg1761-2
+------------------------------------------------------------------------------------
+
+Upgrade Log for IP 'afifo_32x512_axis_data_fifo_0_0'
+
+1. Summary
+----------
+
+SUCCESS in the update of afifo_32x512_axis_data_fifo_0_0 (xilinx.com:ip:axis_data_fifo:1.1 (Rev. 5)) to current project options.
+
+
+
+
+
+
+Copyright 1986-2014 Xilinx, Inc. All Rights Reserved.
+------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2014.4 (win64) Build 1071353 Tue Nov 18 18:29:27 MST 2014
+| Date         : Tue Oct 31 11:17:42 2017
+| Host         : UK running 64-bit major release  (build 9200)
+| Command      : upgrade_ip
+| Device       : xc7a200tfbg676-2
+------------------------------------------------------------------------------------
+
+Upgrade Log for IP 'afifo_32x512_axis_data_fifo_0_0'
+
+1. Summary
+----------
+
+SUCCESS in the update of afifo_32x512_axis_data_fifo_0_0 (xilinx.com:ip:axis_data_fifo:1.1 (Rev. 5)) to current project options.
+
+
+
+
+
+
+Copyright 1986-2014 Xilinx, Inc. All Rights Reserved.
+------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2014.4 (win64) Build 1071353 Tue Nov 18 18:29:27 MST 2014
+| Date         : Thu Oct 26 17:05:42 2017
+| Host         : IT002223 running 64-bit Service Pack 1  (build 7601)
+| Command      : upgrade_ip
+| Device       : xc7vx485tffg1761-2
+------------------------------------------------------------------------------------
+
+Upgrade Log for IP 'afifo_32x512_axis_data_fifo_0_0'
+
+1. Summary
+----------
+
+SUCCESS in the update of afifo_32x512_axis_data_fifo_0_0 (xilinx.com:ip:axis_data_fifo:1.1 (Rev. 5)) to current project options.
+
+
+
+
+
+
+Copyright 1986-2014 Xilinx, Inc. All Rights Reserved.
+------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2014.4 (win64) Build 1071353 Tue Nov 18 18:29:27 MST 2014
+| Date         : Thu Oct 26 16:09:33 2017
+| Host         : UK running 64-bit major release  (build 9200)
+| Command      : upgrade_ip
+| Device       : xc7a200tfbg676-2
+------------------------------------------------------------------------------------
+
+Upgrade Log for IP 'afifo_32x512_axis_data_fifo_0_0'
+
+1. Summary
+----------
+
+SUCCESS in the update of afifo_32x512_axis_data_fifo_0_0 (xilinx.com:ip:axis_data_fifo:1.1 (Rev. 5)) to current project options.
+
