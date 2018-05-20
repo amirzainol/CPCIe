@@ -126,10 +126,14 @@ int Test_SDRAM_to_HwAcc_to_HostPC();
 int Test_HostPC_to_SDRAM_to_HwAcc_to_HostPC();
 int HostPC_to_HwAcc_to_SDRAM();
 int HostPC_to_HwAcc_to_SDRAM_1_file();
-int Test_HostPC_to_SDRAM_1_file();
 int Test_HostPC_to_HwAcc_to_HostPC_1_file();
-int Test_HostPC_decompress_to_SDRAM_1_file();
 int Test_throughput_power();
+
+//int Test_HostPC_decompress_to_SDRAM_1_file();
+//int Test_HostPC_to_SDRAM_1_file();
+
+int compress(char input, int blocksize, int threshold, char output);
+int decompress(char input, char output);
 
 int FilesizeUse;
 int FilesizeA;
@@ -652,14 +656,16 @@ int Test_HostPC_to_SDRAM()
 	return 0;
 }
 
-int Test_HostPC_to_SDRAM_1_file()
+//int Test_HostPC_to_SDRAM_1_file()
+int compress(char matrix_UA, int FilesizeH, int threshold, char output_UA)
 {
 	int FilesizeH;
 
 	clear_flag();
 	FilesizeH = hostpc_tx_size(matrix_UA);
 	send_flag(ADDR02, FilesizeH);
-	send_flag(ADDR00, REQ);
+	send_flag(ADDR02, threshold);
+	send_flag(ADDR00, REQC);
 	wait_flag(ADDR01, RDY);
 	hostpc_tx_file(FilesizeH);
 	send_flag(ADDR00, FIN);
@@ -667,17 +673,15 @@ int Test_HostPC_to_SDRAM_1_file()
 	clear_flag();
 
 	xillybus_close();
-	return 0;
+	//return 0;
+	return output_UA;
 }
 
-int Test_HostPC_decompress_to_SDRAM_1_file()
+//int Test_HostPC_decompress_to_SDRAM_1_file()
+int decompress(char matrix_UA, char output_UA)
 {
-	int FilesizeH;
-
 	clear_flag();
-	FilesizeH = hostpc_tx_size(matrix_UA);
-	send_flag(ADDR02, FilesizeH);
-	send_flag(ADDR00, REQ);
+	send_flag(ADDR00, REQD);
 	wait_flag(ADDR01, RDY);
 	hostpc_tx_file(FilesizeH);
 	send_flag(ADDR00, FIN);
@@ -685,7 +689,8 @@ int Test_HostPC_decompress_to_SDRAM_1_file()
 	clear_flag();
 
 	xillybus_close();
-	return 0;
+	//return 0;
+	return output_UA;
 }
 
 int Test_HostPC_Loopback()
