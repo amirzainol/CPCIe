@@ -61,7 +61,7 @@ Table below shows the utilization of each component used in CPCIe, synthesized u
 Getting Started
 -----------------------------------
 
-1. Run TCL script.
+1. Run TCL script from the [/PROJECT_FILES/standalone/](PROJECT_FILES/standalone/) folder.
 2. Synthesize the design.
 3. Generate the bitstream before testing on an FPGA board (CPCIe supports Xilinx board at the moment).
 4. Run SDK.
