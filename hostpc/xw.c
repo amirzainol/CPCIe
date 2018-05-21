@@ -102,6 +102,9 @@ unsigned int read_value;
 
 int Flag_Fpga;
 
+void write_addr(int addr, int value);
+void read_addr(int addr);
+
 void xillybus_init();
 void xillybus_close();
 void write_flag(int flag, int value);
@@ -1145,6 +1148,30 @@ void allread(int fd, unsigned int *buf, int len) {
     received += rc;
   }
 } 
+
+void write_addr(int addr, int value)
+{
+	if (_lseek(fdw_command_CR, addr, SEEK_SET) < 0) {
+		perror("Failed to seek");
+		exit(1);
+	}
+
+	written_value = (unsigned int) value;
+	
+	allwrite(fdw_command_CR, &written_value, 4);
+}
+
+int read_addr(int addr)
+{
+	if (_lseek(fdr_status_CDI, addr, SEEK_SET) < 0) {
+		perror("Failed to seek");
+		exit(1);
+	}
+
+	allread(fdr_status_CDI, &read_value, 4);
+
+	return read_value;
+}
 
 void write_flag(int flag, int value)
 {
